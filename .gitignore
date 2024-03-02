@@ -1,3 +1,8 @@
+*.iso
+.DS_Store
+/fs/BG/DATA
+
+
 # ---> C++
 # Prerequisites
 *.d
@@ -85,4 +90,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-
+tests/runtest
+*.00
+fs/SLES_506.72

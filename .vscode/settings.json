@@ -1,0 +1,11 @@
+{
+        "files.associations": {
+                "__config": "cpp",
+                "typeinfo": "cpp",
+                "cstddef": "cpp",
+                "cstdio": "cpp",
+                "__locale": "cpp",
+                "string": "cpp",
+                "string_view": "cpp"
+        }
+}
