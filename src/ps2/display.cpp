@@ -120,7 +120,6 @@ void GsResetGraph(short mode, short interlace, short omode, short ffmode)
 
 GsDispEnv displayEnvironment;
 
-// @pal: 002001a0
 void SetDefDispEnv(void)
 {
     GsGParam_t* dp = GsGetGParam();

@@ -38,7 +38,6 @@ void doLoadLmp(const char* lmpName)
     }
 }
 
-// @pal: 13a1d8
 void loadLmp(const char* lmpName)
 {
     bool needLoad = true;
@@ -88,7 +87,6 @@ u8* getLmp(const char* lmpName)
     return pData;
 }
 
-// @pal: 139018
 void setLmpGeneration(int gen)
 {
     for (int i = 0; i < numLoadedLmps; ++i) {
@@ -106,7 +104,6 @@ void setLmpGeneration(int gen)
     return;
 }
 
-// @pal: 13a848
 u8* findLmpEntry(const char* lmpName, const char* entryName)
 {
     u8* unalignedData = getLmp(lmpName);

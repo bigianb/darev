@@ -20,7 +20,6 @@ void drawOpaqueSprite(TextureHeader* pTex, int xpos, int ypos, int slot, bool ap
     return;
 }
 
-// @pal: 00140eb0
 void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool append, u32 vertexColor)
 {
     // FLUSH followed by DIRECT, 12 qwords

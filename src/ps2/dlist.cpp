@@ -102,9 +102,6 @@ GSAllocInfo* gsAllocListTail;
 
 GSAllocInfo* comittedTexturesGSInfo[8];
 
-// reference count maybe?
-// unregister tex
-// @pal: 001436e0
 void uncommitTex(int idx)
 {
     if (comittedTexturesGSInfo[idx]) {
@@ -114,7 +111,6 @@ void uncommitTex(int idx)
     return;
 }
 
-// @pal: 00143690
 void commitTex(int idx, TextureHeader* tex)
 {
     if (tex->gsAllocInfo) {
@@ -128,7 +124,6 @@ void commitTex(int idx, TextureHeader* tex)
     return;
 }
 
-// @pal: 00140588
 void initTextureAllocStuff(void)
 {
     const int gsInitAlloc_initSize = 0xCF0;
@@ -227,7 +222,6 @@ void initTextureAllocStuff(void)
 
 int remainingGSMem = 10000000;
 
-// @pal: 001407e0
 void gsAllocateTex(TextureHeader* tex)
 {
     int requiredGSMem = tex->requiredGSMem;

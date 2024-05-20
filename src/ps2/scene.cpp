@@ -11,7 +11,6 @@
 #include "dlist.h"
 #include "draw.h"
 
-// @pal: 00203700
 void runScene(sceneHandler sceneFunc)
 {
     int done = 0;

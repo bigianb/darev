@@ -20,7 +20,6 @@ fileISOLocationEntry fileISOLocTable[256];
 
 int fileISOLocTableSize;
 
-// @pal: 139858
 void enumerateDirectory(int lsn, int numSectors)
 {
     u8 readBuf[2048 + 64]; // TODO: align to 64 byte
@@ -54,7 +53,6 @@ void enumerateDirectory(int lsn, int numSectors)
     return;
 }
 
-// @pal: 00139a48
 void initCD(void)
 {
     sceCdlFILE file;
@@ -90,20 +88,20 @@ int cdStreamNumSectors;
 int cdBytesRemaingToStream = 0;
 u32* cdStreamReadBuf = nullptr;
 
-int streamLmpLen; // @pal: 003245e0
-u8* streamLmpBuf; // @pal: 003245dc
+int streamLmpLen; 
+u8* streamLmpBuf; 
 
-int numLoadedLmps;      // @pal: 0032453c
-char streamLmpName[80]; // @pal: 0044ccb0
+int numLoadedLmps;  
+char streamLmpName[80]; 
 
-u8 loadLmpStreamDone = 0; // @pal: 003245d9
+u8 loadLmpStreamDone = 0; 
 
-u8* etexData = nullptr; // @pal: 00325c20
+u8* etexData = nullptr; 
 
 // Guess.
 #define MAX_LOADED_LUMPS 64
 
-loadedLmpDirEntry loadedLmpInfo[MAX_LOADED_LUMPS]; // @pal: 00446480
+loadedLmpDirEntry loadedLmpInfo[MAX_LOADED_LUMPS]; 
 
 void* offsetToPtr(void* offset, void* base)
 {
@@ -285,12 +283,10 @@ int vagSpaceAvailable()
     return 0x20000;
 }
 
-// @pal: 0012e7a0
 void trimAllocatedSpace(u8* lmpData, int newLen)
 {
 }
 
-// @pal: 0013a008
 void dealWithCdStreaming()
 {
     if (cdStreamingFlag == 1) {
@@ -357,7 +353,6 @@ void waitForFrame()
 {
 }
 
-// @pal: 0013a9b0
 void waitForCurStreamCompletion(void)
 {
     if (cdStreamingFlag != 0) {
@@ -387,7 +382,6 @@ void makeCDROMPath(char* pDest, const char* pSrc)
     *pDest++ = 0;
 }
 
-// @pal: 00139e30
 void readFile(const char* filename, u8* buf, u8* pStreamingDone, int size, int startOffset)
 {
     waitForCurStreamCompletion();
