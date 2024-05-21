@@ -17,7 +17,6 @@ inline u64* addAlign16(u64* in, int n)
 void drawOpaqueSprite(TextureHeader* pTex, int xpos, int ypos, int slot, bool append)
 {
     drawSprite(pTex, xpos, ypos, slot, append, 0x80808080);
-    return;
 }
 
 void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool append, u32 vertexColor)
@@ -74,11 +73,11 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
         int v0 = 0;
         if ((primY & 0x10) == 0) {
             //Even scanline
-            if (isEvenField) {
+            if (isOddField) {
                 v0 = (pTexData->height / 2) * 0x10 - 4;
             }
         } else {
-            if (isEvenField) {
+            if (isOddField) {
                 primY = ypos * 0x10 + 0x6ff0;
                 v0 = -4;
             } else {
