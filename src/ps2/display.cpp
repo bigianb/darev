@@ -555,6 +555,7 @@ void initDisplay(void)
 
 u32 startFrameDmaBuffer[300] __attribute__((aligned(16)));
 
+// This offset is from the previous frame.
 u32 y_offset = 0x7000;
 
 // sometimes set to 0x18
@@ -576,11 +577,20 @@ void startFrame()
     ucabBuf[6] = 0xe;
     ucabBuf[7] = 0;
 
+
+    // FBP = 0x50 = 0x28000 word address = 0xA0000 byte address
+    // FBW = 0x14 = 0x500 = 1280 pixels
+    // Height of 512 would take it up to the z buffer
+    // PSM = PSMCT16
     ucabBuf[8] = 0x2140050;
     ucabBuf[9] = 0;
     ucabBuf[10] = GSReg::FRAME_1;
     ucabBuf[11] = 0;
 
+
+    // ZBP = 0xF0 = 0x78000 word addres, 0x1E0000 byte address
+    // PSM = PSMZ16
+    // Z buffer is updated
     ucabBuf[12] = 0x20000f0;
     ucabBuf[13] = 0;
     ucabBuf[14] = GSReg::ZBUF_1;
@@ -591,14 +601,25 @@ void startFrame()
     scissorY0 = 0;
     /*}
     else {
-      scissorY1 = DAT_ram_00325c50 * -2 + 0x1c8;
-      scissorY0 = DAT_ram_00325c50 * -2 + 0x37;
+      scissorY1 = 0x1c8 - 2 * DAT_ram_00325c50;
+      scissorY0 = 0x37 - 2 * DAT_ram_00325c50;
     }
 */
+
+    // scissor 0 -> 1279, 0 -> 511
     ucabBuf[16] = 0x4ff0000;
     ucabBuf[17] = 0x1ff0000;
     ucabBuf[18] = GSReg::SCISSOR_1;
     ucabBuf[19] = 0;
+
+    // Primitive coordinate system is 0 -> 4095.9375
+    // Window coordinates have an origin at the top left of the framebuffer.
+
+    // Centre the FB in the primitive coord space.
+    // 1408 = (4096 - 1280) / 2
+    // 1792 = (4096 - 512)  / 2
+
+    // Offset (1408, 1792)
 
     ucabBuf[20] = 0x5800;
     ucabBuf[21] = y_offset;
@@ -621,16 +642,19 @@ void startFrame()
     }
     */
 
+    // enable dither
     ucabBuf[28] = 1;
     ucabBuf[29] = 0;
     ucabBuf[30] = GSReg::DTHE;
     ucabBuf[31] = 0;
 
+    // Alpha blend control disabled
     ucabBuf[32] = 0;
     ucabBuf[33] = 0;
     ucabBuf[34] = GSReg::PABE;
     ucabBuf[35] = 0;
 
+    // Color clamping performed
     ucabBuf[36] = 1;
     ucabBuf[37] = 0;
     ucabBuf[38] = GSReg::COLCLAMP;
@@ -649,20 +673,20 @@ void startFrame()
             if (1.0 < fVar9) {
                 fVar9 = 1.0;
             }
-            local_30 = (ulong*)(uint32_t_ARRAY_ram_30643ce0 + 0x2c);
+            local_30 = (ulong*)(ucabBuf + 0x2c);
 
             uVar8 = (uint)((float)DAT_ram_00325c30 + (float)(DAT_ram_00325c34 - DAT_ram_00325c30) * fVar9);
-            uint32_t_ARRAY_ram_30643ce0[40] =
+            ucabBuf[40] =
                 uVar8 | 0x80000000 | (uint)((long)(int)uVar8 << 0x10) | (uint)((long)(int)uVar8 << 8);
-            uint32_t_ARRAY_ram_30643ce0[41] = 0;
-            uint32_t_ARRAY_ram_30643ce0[42] = GSReg::RGBAQ;
-            uint32_t_ARRAY_ram_30643ce0[43] = 0;
+            ucabBuf[41] = 0;
+            ucabBuf[42] = GSReg::RGBAQ;
+            ucabBuf[43] = 0;
 
             if ((DAT_ram_00325074 & 0x80) != 0) {
-                uint32_t_ARRAY_ram_30643ce0[44] = 0x80644646;
-                uint32_t_ARRAY_ram_30643ce0[45] = 0;
-                uint32_t_ARRAY_ram_30643ce0[46] = GSReg::RGBAQ;
-                uint32_t_ARRAY_ram_30643ce0[47] = 0;
+                ucabBuf[44] = 0x80644646;
+                ucabBuf[45] = 0;
+                ucabBuf[46] = GSReg::RGBAQ;
+                ucabBuf[47] = 0;
 
                 local_30 = (ulong*)(uint32_t_ARRAY_ram_30643ce0 + 0x30);
             }
@@ -709,7 +733,7 @@ void startFrame()
                 set_324014(fVar9 * 0.7 + 1.0);
             }
         } else {
-            local_30 = (ulong*)(uint32_t_ARRAY_ram_30643ce0 + 0x2c);
+            local_30 = (ulong*)(ucabBuf + 0x2c);
     */
     ucabBuf[dmaIdx++] = 0x80303030;
     ucabBuf[dmaIdx++] = 0;
@@ -719,6 +743,9 @@ void startFrame()
         }
     */
 
+    // Alpha test off
+    // Destination alpha test off
+    // ztest greater
     ucabBuf[dmaIdx++] = 0x387f4;
     ucabBuf[dmaIdx++] = 0;
     ucabBuf[dmaIdx++] = GSReg::TEST_1;
@@ -736,31 +763,29 @@ void startFrame()
 
     u32 iVar1 = DAT_ram_00325c50;
 
-    u32 uVar4 = 0x5800;
-    int iVar7 = 0x4c0;
+    u32 physXpos = 0x5800;      // 0 in window pos
     do {
-        // Clears the frame
-        ucabBuf[dmaIdx++] = uVar4 | 0x70000000;
-        ;
+        // Clears the frame by vertical strips
+        ucabBuf[dmaIdx++] = physXpos | 0x70000000;
+        
         ucabBuf[dmaIdx++] = 0;
         ucabBuf[dmaIdx++] = GSReg::XYZ2;
         ucabBuf[dmaIdx++] = 0;
 
-        uVar4 += 0x400;
-        iVar7 += -0x40;
+        physXpos += 0x400;     // 64.0
 
-        ucabBuf[dmaIdx++] = uVar4 | ((iVar1 * 2 + 0x900) * 0x10) << 0x10;
+        ucabBuf[dmaIdx++] = physXpos | ((iVar1 * 2 + 0x900) * 0x10) << 0x10;
         ucabBuf[dmaIdx++] = 0;
         ucabBuf[dmaIdx++] = GSReg::XYZ2;
         ucabBuf[dmaIdx++] = 0;
-    } while (iVar7 >= 0);
+    } while (physXpos < 0x5800 + 1280*16);
 
     ucabBuf[dmaIdx++] = 0x425045;
     ucabBuf[dmaIdx++] = 0;
     ucabBuf[dmaIdx++] = GSReg::FOGCOL;
     ucabBuf[dmaIdx++] = 0;
 
-    ucabBuf[dmaIdx++] = 0x4ff0000; // (0, scissorY0) -> (1279, scissorY1)
+    ucabBuf[dmaIdx++] = 0x4ff0000; // (0, 1279) -> (scissorY0, scissorY1)
     ucabBuf[dmaIdx++] = scissorY1 << 0x10 | scissorY0;
     ucabBuf[dmaIdx++] = GSReg::SCISSOR_1;
     ucabBuf[dmaIdx++] = 0;
