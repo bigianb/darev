@@ -14,7 +14,7 @@
 void runScene(sceneHandler sceneFunc)
 {
     int done = 0;
-    int INT_ram_00325c38 = 2;
+    int displayEnableCountdown = 2;
     isInterlaced = 1;
     displayEnvironment.dispfb &= 0xfffffe00;
 
@@ -50,13 +50,15 @@ void runScene(sceneHandler sceneFunc)
         while (vblankSetsMeToFF != 0xff) {
             WaitSema(vblankSema);
         }
-        if (INT_ram_00325c38 < 1) {
-            WR_EE_GS_SMODE2(3);
+        // Interlaced FRAME mode (read every line)
+        WR_EE_GS_SMODE2(3);
+        if (displayEnableCountdown < 1) {    
+            // Enable read circuit 2, disable read circuit 1
             WR_EE_GS_PMODE(2);
         } else {
-            WR_EE_GS_SMODE2(3);
+            // Both read circuits off
             WR_EE_GS_PMODE(0);
-            INT_ram_00325c38 -= 1;
+            --displayEnableCountdown;
         }
         //REG_RCNT0_COUNT = 0;
         endFrame();

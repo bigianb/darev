@@ -234,7 +234,7 @@ void initGs()
 
 u64 zbuf_val;
 
-u32 frameDMAProg[4000];
+u32 frameDMAProg[4000] __attribute__((aligned(16)));
 u32* pDmaProg_RGBAQval;
 u32* pDmaProg_FRAME1Val;
 u32* pDmaProg_ALPHA1_FIX_val;
@@ -553,7 +553,7 @@ void initDisplay(void)
 }
 
 
-u32 uint32_t_ARRAY_ram_30643ce0[300];
+u32 startFrameDmaBuffer[300] __attribute__((aligned(16)));
 
 u32 y_offset = 0x7000;
 
@@ -567,22 +567,24 @@ void startFrame()
 {
     //traceln("startFrame");
 
-    uint32_t_ARRAY_ram_30643ce0[2] = 0;
-    uint32_t_ARRAY_ram_30643ce0[3] = 0;
-    uint32_t_ARRAY_ram_30643ce0[4] = 0x8000; // GIF Tag A+D
-    uint32_t_ARRAY_ram_30643ce0[5] = 0x10000000;
-    uint32_t_ARRAY_ram_30643ce0[6] = 0xe;
-    uint32_t_ARRAY_ram_30643ce0[7] = 0;
+    u32* ucabBuf = (u32*)UCAB_SEG(startFrameDmaBuffer); 
 
-    uint32_t_ARRAY_ram_30643ce0[8] = 0x2140050;
-    uint32_t_ARRAY_ram_30643ce0[9] = 0;
-    uint32_t_ARRAY_ram_30643ce0[10] = GSReg::FRAME_1;
-    uint32_t_ARRAY_ram_30643ce0[11] = 0;
+    ucabBuf[2] = 0;
+    ucabBuf[3] = 0;
+    ucabBuf[4] = 0x8000; // GIF Tag A+D
+    ucabBuf[5] = 0x10000000;
+    ucabBuf[6] = 0xe;
+    ucabBuf[7] = 0;
 
-    uint32_t_ARRAY_ram_30643ce0[12] = 0x20000f0;
-    uint32_t_ARRAY_ram_30643ce0[13] = 0;
-    uint32_t_ARRAY_ram_30643ce0[14] = GSReg::ZBUF_1;
-    uint32_t_ARRAY_ram_30643ce0[15] = 0;
+    ucabBuf[8] = 0x2140050;
+    ucabBuf[9] = 0;
+    ucabBuf[10] = GSReg::FRAME_1;
+    ucabBuf[11] = 0;
+
+    ucabBuf[12] = 0x20000f0;
+    ucabBuf[13] = 0;
+    ucabBuf[14] = GSReg::ZBUF_1;
+    ucabBuf[15] = 0;
 
     //if ((DAT_ram_003248b8 == '\0') || (isLoading != 0)) {
     scissorY1 = 0x1ff;
@@ -593,20 +595,20 @@ void startFrame()
       scissorY0 = DAT_ram_00325c50 * -2 + 0x37;
     }
 */
-    uint32_t_ARRAY_ram_30643ce0[16] = 0x4ff0000;
-    uint32_t_ARRAY_ram_30643ce0[17] = 0x1ff0000;
-    uint32_t_ARRAY_ram_30643ce0[18] = GSReg::SCISSOR_1;
-    uint32_t_ARRAY_ram_30643ce0[19] = 0;
+    ucabBuf[16] = 0x4ff0000;
+    ucabBuf[17] = 0x1ff0000;
+    ucabBuf[18] = GSReg::SCISSOR_1;
+    ucabBuf[19] = 0;
 
-    uint32_t_ARRAY_ram_30643ce0[20] = 0x5800;
-    uint32_t_ARRAY_ram_30643ce0[21] = y_offset;
-    uint32_t_ARRAY_ram_30643ce0[22] = GSReg::XYOFFSET_1;
-    uint32_t_ARRAY_ram_30643ce0[23] = 0;
+    ucabBuf[20] = 0x5800;
+    ucabBuf[21] = y_offset;
+    ucabBuf[22] = GSReg::XYOFFSET_1;
+    ucabBuf[23] = 0;
 
-    uint32_t_ARRAY_ram_30643ce0[24] = 0x5800;
-    uint32_t_ARRAY_ram_30643ce0[25] = y_offset;
-    uint32_t_ARRAY_ram_30643ce0[26] = GSReg::XYOFFSET_2;
-    uint32_t_ARRAY_ram_30643ce0[27] = 0;
+    ucabBuf[24] = 0x5800;
+    ucabBuf[25] = y_offset;
+    ucabBuf[26] = GSReg::XYOFFSET_2;
+    ucabBuf[27] = 0;
 
     y_offset = 0x7000;
     if (isOddField) {
@@ -619,20 +621,20 @@ void startFrame()
     }
     */
 
-    uint32_t_ARRAY_ram_30643ce0[28] = 1;
-    uint32_t_ARRAY_ram_30643ce0[29] = 0;
-    uint32_t_ARRAY_ram_30643ce0[30] = GSReg::DTHE;
-    uint32_t_ARRAY_ram_30643ce0[31] = 0;
+    ucabBuf[28] = 1;
+    ucabBuf[29] = 0;
+    ucabBuf[30] = GSReg::DTHE;
+    ucabBuf[31] = 0;
 
-    uint32_t_ARRAY_ram_30643ce0[32] = 0;
-    uint32_t_ARRAY_ram_30643ce0[33] = 0;
-    uint32_t_ARRAY_ram_30643ce0[34] = GSReg::PABE;
-    uint32_t_ARRAY_ram_30643ce0[35] = 0;
+    ucabBuf[32] = 0;
+    ucabBuf[33] = 0;
+    ucabBuf[34] = GSReg::PABE;
+    ucabBuf[35] = 0;
 
-    uint32_t_ARRAY_ram_30643ce0[36] = 1;
-    uint32_t_ARRAY_ram_30643ce0[37] = 0;
-    uint32_t_ARRAY_ram_30643ce0[38] = GSReg::COLCLAMP;
-    uint32_t_ARRAY_ram_30643ce0[39] = 0;
+    ucabBuf[36] = 1;
+    ucabBuf[37] = 0;
+    ucabBuf[38] = GSReg::COLCLAMP;
+    ucabBuf[39] = 0;
 
     int dmaIdx = 40;
 
@@ -709,28 +711,28 @@ void startFrame()
         } else {
             local_30 = (ulong*)(uint32_t_ARRAY_ram_30643ce0 + 0x2c);
     */
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0x80303030;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = GSReg::RGBAQ;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = 0x80303030;
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::RGBAQ;
+    ucabBuf[dmaIdx++] = 0;
     /*
         }
     */
 
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0x387f4;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = GSReg::TEST_1;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = 0x387f4;
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::TEST_1;
+    ucabBuf[dmaIdx++] = 0;
 
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 1; // PRIM REG
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = GSReg::PRMODECONT;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = 1; // PRIM REG
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::PRMODECONT;
+    ucabBuf[dmaIdx++] = 0;
 
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 6; // untextured sprite
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = GSReg::PRIM;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = 6; // untextured sprite
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::PRIM;
+    ucabBuf[dmaIdx++] = 0;
 
     u32 iVar1 = DAT_ram_00325c50;
 
@@ -738,45 +740,43 @@ void startFrame()
     int iVar7 = 0x4c0;
     do {
         // Clears the frame
-        uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = uVar4 | 0x70000000;
+        ucabBuf[dmaIdx++] = uVar4 | 0x70000000;
         ;
-        uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
-        uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = GSReg::XYZ2;
-        uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
+        ucabBuf[dmaIdx++] = 0;
+        ucabBuf[dmaIdx++] = GSReg::XYZ2;
+        ucabBuf[dmaIdx++] = 0;
 
         uVar4 += 0x400;
         iVar7 += -0x40;
 
-        uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = uVar4 | ((iVar1 * 2 + 0x900) * 0x10) << 0x10;
-        uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
-        uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = GSReg::XYZ2;
-        uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
+        ucabBuf[dmaIdx++] = uVar4 | ((iVar1 * 2 + 0x900) * 0x10) << 0x10;
+        ucabBuf[dmaIdx++] = 0;
+        ucabBuf[dmaIdx++] = GSReg::XYZ2;
+        ucabBuf[dmaIdx++] = 0;
     } while (iVar7 >= 0);
 
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0x425045;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = GSReg::FOGCOL;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = 0x425045;
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::FOGCOL;
+    ucabBuf[dmaIdx++] = 0;
 
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0x4ff0000; // (0, scissorY0) -> (1279, scissorY1)
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = scissorY1 << 0x10 | scissorY0;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = GSReg::SCISSOR_1;
-    uint32_t_ARRAY_ram_30643ce0[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = 0x4ff0000; // (0, scissorY0) -> (1279, scissorY1)
+    ucabBuf[dmaIdx++] = scissorY1 << 0x10 | scissorY0;
+    ucabBuf[dmaIdx++] = GSReg::SCISSOR_1;
+    ucabBuf[dmaIdx++] = 0;
 
     //traceln("dmaIdx=%d", dmaIdx);
 
     int qwc = dmaIdx / 4;
 
     // Write DMA Tag
-    uint32_t_ARRAY_ram_30643ce0[0] = 0x70000000 | (qwc - 1);
-    uint32_t_ARRAY_ram_30643ce0[1] = 0;
+    ucabBuf[0] = 0x70000000 | (qwc - 1);
+    ucabBuf[1] = 0;
 
     // write GIF Tag nloop
-    uint32_t_ARRAY_ram_30643ce0[4] |= (qwc - 2);
+    ucabBuf[4] |= (qwc - 2);
 
-    // TODO: use uncached area (0x30000000) so we don't need to flush
-    FlushCache(WRITEBACK_DCACHE);
-    dmaSend(DmaChannel::GIF, uint32_t_ARRAY_ram_30643ce0);
+    dmaSend(DmaChannel::GIF, startFrameDmaBuffer);
     sceGsSyncPath(0, 0);
 }
 
