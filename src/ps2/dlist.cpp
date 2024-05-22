@@ -33,12 +33,15 @@ int GSFinishCounter = 0;
 
 u32 currentActiveChannels = 0;
 int curDmaSlot = 0;
-int activeDmaBank = 0;
+
+int dlistBankBeingUploaded = 0;
+// dlist bank being written to
+int activeDlistBank = 1; // 0 or 1
 
 DlistNode* curDmaNode = nullptr;
 
 int firstFreeDlistNodeIndex;
-int activeDlistBank; // 0 or 1
+
 const int DLIST_HEAP_SIZE = 1024;
 DlistNode dlistHeap[2][DLIST_HEAP_SIZE];
 
@@ -407,11 +410,11 @@ int dmaHandler(int channel)
         // kickoff new transfer
         curDmaSlot = 0;
 
-        activeDmaBank ^= 1;
+        dlistBankBeingUploaded ^= 1;
         dmaInProgress = 1;
 
         currentActiveChannels = 0;
-        curDmaNode = dlistHeads[activeDmaBank][0]->next;
+        curDmaNode = dlistHeads[dlistBankBeingUploaded][0]->next;
         zeroOrTwo = (curDmaNode == nullptr) ? VIF1_ACTIVE : 0;
 
         dmaSemaSignalled = 0;
@@ -445,7 +448,7 @@ int dmaHandler(int channel)
             if (curDmaSlot > 7) {
                 curDmaNode = nullptr;
             } else {
-                curDmaNode = dlistHeads[activeDmaBank][curDmaSlot]->next;
+                curDmaNode = dlistHeads[dlistBankBeingUploaded][curDmaSlot]->next;
             }
             zeroOrTwo = (curDmaNode == nullptr) ? VIF1_ACTIVE : 0;
 
@@ -679,6 +682,8 @@ void initDMA()
 #endif
 	
     activeDlistBank = 1;
+    dlistBankBeingUploaded = 0;
+    
     initDListHeads();
 
     ee_sema_t dmaSema;

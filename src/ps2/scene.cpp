@@ -72,6 +72,7 @@ void runScene(sceneHandler sceneFunc)
     } while (done == 0);
 
     //FUN_ram_00182310(1);
+    // Both read circuits off
     WR_EE_GS_PMODE(0);
     /*
     FUN_ram_001f02c0(0);

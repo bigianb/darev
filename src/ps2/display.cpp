@@ -249,7 +249,6 @@ inline u32 makeXY(u32 x, u32 y)
     return x | (y << 16);
 }
 
-// @002002c0
 void buildFrameDMAProg(void)
 {
     frameDMAProg[2] = 0;
@@ -265,7 +264,8 @@ void buildFrameDMAProg(void)
     frameDMAProg[11] = 0;
 
     pDmaProg_FRAME1Val = &frameDMAProg[12];
-    frameDMAProg[12] = 0x10a0000; // FBP = 0, FBW = 10 (640), PSM = PSMCT32
+    // Overridden to PSMCT32 in end frame
+    frameDMAProg[12] = 0x010a0000; // FBP = 0, FBW = 10 (640), PSM = PSMCT24
     frameDMAProg[13] = 0;
     frameDMAProg[14] = 0x4c; // FRAME_1
     frameDMAProg[15] = 0;
@@ -285,6 +285,7 @@ void buildFrameDMAProg(void)
     frameDMAProg[26] = 0x14; // TEX1_1
     frameDMAProg[27] = 0;
 
+    // ATE on, ATST never (all fail), AREF=0, AFAIL = FB_ONLY, DATE OFF, ZTEST ALWAYS
     frameDMAProg[28] = 0x31001; // only update FB, z always
     frameDMAProg[29] = 0;
     frameDMAProg[30] = 0x47; // TEST_1
@@ -370,8 +371,8 @@ void buildFrameDMAProg(void)
             u0 = u1;
             x0 = x1;
 
-            xpos += 64;
-        } while (xpos < 640);
+            xpos += 32;
+        } while (xpos < 320);
         y0 = y1;
         y1 += 64;
     } while (y0 < 512);
@@ -416,8 +417,8 @@ void buildFrameDMAProg(void)
             u0 = u1;
             x0 = x1;
 
-            xpos += 64;
-        } while (xpos < 640);
+            xpos += 32;
+        } while (xpos < 320);
         y0 = y1;
         y1 = y1 + 64;
     } while (y0 < 512);
