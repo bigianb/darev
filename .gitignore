@@ -93,3 +93,4 @@ dkms.conf
 tests/runtest
 *.00
 fs/SLES_506.72
+*.code-workspace

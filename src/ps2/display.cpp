@@ -2,6 +2,8 @@
 #include <kernel.h>
 #include <ee_regs.h>
 #include <libgs.h>
+#include <gs_privileged.h>
+#include <gs_gp.h>
 
 #include "trace.h"
 #include "display.h"
@@ -149,7 +151,7 @@ void SetDefDispEnv(void)
             // dw = 2559, magh = 4, magv = 1
             displayEnvironment.display = dx | dy << 0xc | dh << 0x2c | 0x9ff01800000;
         }
-    } else {
+    } else if (dp->omode == GS_MODE_PAL) {
         // 3, GS_MODE_PAL
         u32 dx = 0x2b0;
         if (dp->interlace != GS_INTERLACED) {
@@ -160,6 +162,33 @@ void SetDefDispEnv(void)
             u64 dh = dp->ffmode ? 511 : 255;
             displayEnvironment.display = dx | dy << 0xc | dh << 0x2c | 0x9ff01800000;
         }
+    } else {
+        int width = 640;
+        int height = 512;
+        int StartX = 232;
+        int StartXOffset = 0;
+        int StartY = 35;
+        int StartYOffset = 0;
+        int DW = 1440;
+        int DH = 480;
+        int MagH = (DW / width) - 1;  // multiple of the screen width
+        int MagV = (DH / height) - 1; // multiple of the screen height
+
+        // Calculate the actual display width and height
+        DW = (MagH + 1) * width;
+        DH = (MagV + 1) * height;
+
+        // Keep the framebuffer in the center of the screen
+        StartX += (DW - ((MagH + 1) * width)) / 2;
+        StartY += (DH - ((MagV + 1) * height)) / 2;
+
+        displayEnvironment.display = GS_SET_DISPLAY(
+                    StartX + StartXOffset, // X position in the display area (in VCK units)
+                    StartY + StartYOffset, // Y position in the display area (in Raster units)
+                    MagH,                  // Horizontal Magnification
+                    MagV,                  // Vertical Magnification
+                    DW - 1,                // Display area width
+                    DH - 1);               // Display area height
     }
 
     return;
@@ -216,6 +245,7 @@ void initGs()
     vblankSema = CreateSema(&semaParam);
 
     GsResetGraph(GS_INIT_RESET, GS_INTERLACED, GS_MODE_PAL, GS_FFMD_FRAME);
+//    GsResetGraph(GS_INIT_RESET, GS_NONINTERLACED, GS_MODE_DTV_480P, GS_FFMD_FRAME);
 
     vblankHandlerId = AddIntcHandler(2, vblank_handler, 0);
     EnableIntc(2);
@@ -249,7 +279,146 @@ inline u32 makeXY(u32 x, u32 y)
     return x | (y << 16);
 }
 
-void buildFrameDMAProg(void)
+void build640PEndFrameDMA()
+{
+    frameDMAProg[2] = 0;
+    frameDMAProg[3] = 0;
+    frameDMAProg[4] = 0x8000;
+    frameDMAProg[5] = 0x10000000;
+    frameDMAProg[6] = 0xe; // A+D Reg
+    frameDMAProg[7] = 0;
+
+    frameDMAProg[8] = 0; // no dither
+    frameDMAProg[9] = 0;
+    frameDMAProg[10] = 0x45; // DTHE
+    frameDMAProg[11] = 0;
+
+    pDmaProg_FRAME1Val = &frameDMAProg[12];
+    // Overridden to PSMCT32 in end frame
+    frameDMAProg[12] = 0x010a0000; // FBP = 0, FBW = 10 (640), PSM = PSMCT24
+    frameDMAProg[13] = 0;
+    frameDMAProg[14] = 0x4c; // FRAME_1
+    frameDMAProg[15] = 0;
+
+    frameDMAProg[16] = 0x27f0000; // (0,0) -> (639, 511)
+    frameDMAProg[17] = 0x1ff0000;
+    frameDMAProg[18] = 0x40; // SCISSOR_1
+    frameDMAProg[19] = 0;
+
+    // TODO
+    frameDMAProg[20] = 0x6c00; // (0x6c00, 0x7800)
+    frameDMAProg[21] = 0x7800;
+    frameDMAProg[22] = 0x18; // XYOFFSET_1
+    frameDMAProg[23] = 0;
+
+    frameDMAProg[24] = 0x61; // no mipmap
+    frameDMAProg[25] = 0;
+    frameDMAProg[26] = 0x14; // TEX1_1
+    frameDMAProg[27] = 0;
+
+    // ATE on, ATST never (all fail), AREF=0, AFAIL = FB_ONLY, DATE OFF, ZTEST ALWAYS
+    frameDMAProg[28] = 0x31001; // only update FB, z always
+    frameDMAProg[29] = 0;
+    frameDMAProg[30] = 0x47; // TEST_1
+    frameDMAProg[31] = 0;
+
+    pDmaProg_RGBAQval = &frameDMAProg[32];
+    frameDMAProg[32] = 0x00808080; // HIGHLIGHT mode
+    frameDMAProg[33] = 0;
+    frameDMAProg[34] = 1; // RGBAQ
+    frameDMAProg[35] = 0;
+
+    frameDMAProg[36] = 0x156; // flat shaded sprite, textured, alpha blended, no fog, UV mapped, context 1
+    frameDMAProg[37] = 0;
+    frameDMAProg[38] = 0; // PRIM
+    frameDMAProg[39] = 0;
+
+    pDmaProg_ALPHA1_FIX_val = &frameDMAProg[41];
+
+    frameDMAProg[40] = 0x64; // 01 10 01 00, d=Cd, c=FIX, b=Cd, a=Cs. Cv=(Cs - Cd)*FIX>>7 + Cd
+    frameDMAProg[41] = 0x80; // FIX
+    frameDMAProg[42] = 0x42; // ALPHA_1
+    frameDMAProg[43] = 0;
+
+    frameDMAProg[44] = 0;
+    frameDMAProg[45] = 0;
+    frameDMAProg[46] = 0x3f; // TEXFLUSH
+    frameDMAProg[47] = 0;
+
+    u64 tex0 = GS_SET_TEX0(0x1400, 0x0A, 0, // PSMCT32
+    10,     // TW
+    10,     // TH
+    0,      //RGB
+    2,      // HIGHLIGHT
+    0,      // CBP
+    0,      // CPSM
+    0,      // CSM
+    0,      // CSA
+    0       // CLD
+     );
+    *(u64*)&frameDMAProg[48] = tex0;
+    frameDMAProg[50] = 6; // TEX0_1
+    frameDMAProg[51] = 0;
+
+    int progIdx = 52;
+
+    unsigned int u0 = 0;
+    unsigned int v0 = 0;
+    unsigned int u1 = 640 * 16;
+    unsigned int v1 = 512 * 16;
+
+    unsigned int x0 = 0x6c00;
+    unsigned int y0 = 0x7800;
+    unsigned int x1 = x0 + 640 * 16;
+    unsigned int y1 = y0 + 512 * 16;
+
+    frameDMAProg[progIdx++] = makeUV(u0, v0);
+    frameDMAProg[progIdx++] = 0;
+    frameDMAProg[progIdx++] = 3; // UV
+    frameDMAProg[progIdx++] = 0;
+
+    frameDMAProg[progIdx++] = makeXY(x0, y0);
+    frameDMAProg[progIdx++] = 0x0A;
+    frameDMAProg[progIdx++] = 5; // XYZ2
+    frameDMAProg[progIdx++] = 0;
+
+    frameDMAProg[progIdx++] = makeUV(u1, v1);
+    frameDMAProg[progIdx++] = 0;
+    frameDMAProg[progIdx++] = 3; // UV
+    frameDMAProg[progIdx++] = 0;
+
+    frameDMAProg[progIdx++] = makeXY(x1, y1);
+    frameDMAProg[progIdx++] = 0x0A;
+    frameDMAProg[progIdx++] = 5; // XYZ2
+    frameDMAProg[progIdx++] = 0;
+
+    frameDMAProg[progIdx++] = 1;
+    frameDMAProg[progIdx++] = 0;
+    frameDMAProg[progIdx++] = 0x45; // DTHE enable
+    frameDMAProg[progIdx++] = 0;
+
+    frameDMAProg[progIdx++] = 0x31317575;
+    frameDMAProg[progIdx++] = 0x31317575;
+    frameDMAProg[progIdx++] = 0x44; // DTHE enable
+    frameDMAProg[progIdx++] = 0;
+
+    while (progIdx & 0x03) {
+        frameDMAProg[progIdx++] = 0;
+    }
+
+    //traceln("progIdx = %d", progIdx);
+
+    int qwc = progIdx / 4;
+
+    // Write DMA Tag
+    frameDMAProg[0] = 0x70000000 | (qwc - 1);
+    frameDMAProg[1] = 0;
+
+    // write GIF Tag nloop
+    frameDMAProg[4] |= (qwc - 2);
+}
+
+void buildInterlacedFrameDMA()
 {
     frameDMAProg[2] = 0;
     frameDMAProg[3] = 0;
@@ -450,6 +619,16 @@ void buildFrameDMAProg(void)
     return;
 }
 
+void buildFrameDMAProg()
+{
+    GsGParam_t* dp = GsGetGParam();
+    if (dp->omode == GS_MODE_DTV_480P){
+        build640PEndFrameDMA();
+    } else {
+        buildInterlacedFrameDMA();
+    }
+}
+
 // 0x002006f0
 void initDisplay(void)
 {
@@ -565,7 +744,7 @@ u32 DAT_ram_00325c50 = 0;
 int scissorY0;
 int scissorY1;
 
-void startFrame()
+void startFrameInterlaced()
 {
     //traceln("startFrame");
 
@@ -806,6 +985,170 @@ void startFrame()
     sceGsSyncPath(0, 0);
 }
 
+void startFrame640P()
+{
+    u32* ucabBuf = (u32*)UCAB_SEG(startFrameDmaBuffer); 
+
+    ucabBuf[2] = 0;
+    ucabBuf[3] = 0;
+    ucabBuf[4] = 0x8000; // GIF Tag A+D
+    ucabBuf[5] = 0x10000000;
+    ucabBuf[6] = 0xe;
+    ucabBuf[7] = 0;
+
+
+    // FBP = 0xA0 = 0x140000 byte address
+    // FBW = 0xA = 640 pixels
+    // Height of 512 would take it up to the z buffer
+    // PSM = PSMCT32
+    ucabBuf[8] = 0x00A00A0;
+    ucabBuf[9] = 0;
+    ucabBuf[10] = GSReg::FRAME_1;
+    ucabBuf[11] = 0;
+
+
+    // ZBP = 140 = 0x280000 byte address
+    // PSM = PSMZ16
+    // Z buffer is updated
+    ucabBuf[12] = 0x2000140;
+    ucabBuf[13] = 0;
+    ucabBuf[14] = GSReg::ZBUF_1;
+    ucabBuf[15] = 0;
+
+    scissorY1 = 0x1ff;
+    scissorY0 = 0;
+
+    // scissor 0 -> 639, 0 -> 511
+    ucabBuf[16] = 0x27f0000;
+    ucabBuf[17] = 0x1ff0000;
+    ucabBuf[18] = GSReg::SCISSOR_1;
+    ucabBuf[19] = 0;
+
+    // Primitive coordinate system is 0 -> 4095.9375
+    // Window coordinates have an origin at the top left of the framebuffer.
+
+    // Centre the FB in the primitive coord space.
+    // 1408 = (4096 - 1280) / 2
+    // 1792 = (4096 - 512)  / 2
+
+    // Offset (1408, 1792)
+
+    ucabBuf[20] = 0x5800;
+    ucabBuf[21] = 0x7000;
+    ucabBuf[22] = GSReg::XYOFFSET_1;
+    ucabBuf[23] = 0;
+
+    ucabBuf[24] = 0x5800;
+    ucabBuf[25] = 0x7000;
+    ucabBuf[26] = GSReg::XYOFFSET_2;
+    ucabBuf[27] = 0;
+
+    /*
+    if (isLoading == 0) {
+        // sometimes set to 0x18
+        y_offset += DAT_ram_00325c50 * 0x20;
+    }
+    */
+
+    // enable dither
+    ucabBuf[28] = 1;
+    ucabBuf[29] = 0;
+    ucabBuf[30] = GSReg::DTHE;
+    ucabBuf[31] = 0;
+
+    // Alpha blend control disabled
+    ucabBuf[32] = 0;
+    ucabBuf[33] = 0;
+    ucabBuf[34] = GSReg::PABE;
+    ucabBuf[35] = 0;
+
+    // Color clamping performed
+    ucabBuf[36] = 1;
+    ucabBuf[37] = 0;
+    ucabBuf[38] = GSReg::COLCLAMP;
+    ucabBuf[39] = 0;
+
+    int dmaIdx = 40;
+
+ 
+    ucabBuf[dmaIdx++] = 0x80303030;
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::RGBAQ;
+    ucabBuf[dmaIdx++] = 0;
+
+
+    // Alpha test off
+    // Destination alpha test off
+    // ztest greater
+    ucabBuf[dmaIdx++] = 0x387f4;
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::TEST_1;
+    ucabBuf[dmaIdx++] = 0;
+
+    ucabBuf[dmaIdx++] = 1; // PRIM REG
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::PRMODECONT;
+    ucabBuf[dmaIdx++] = 0;
+
+    ucabBuf[dmaIdx++] = 6; // untextured sprite
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::PRIM;
+    ucabBuf[dmaIdx++] = 0;
+
+    u32 iVar1 = DAT_ram_00325c50;
+
+    u32 physXpos = 0x5800;      // 0 in window pos
+    do {
+        // Clears the frame by vertical strips
+        ucabBuf[dmaIdx++] = physXpos | 0x70000000;
+        
+        ucabBuf[dmaIdx++] = 0;
+        ucabBuf[dmaIdx++] = GSReg::XYZ2;
+        ucabBuf[dmaIdx++] = 0;
+
+        physXpos += 0x400;     // 64.0
+
+        ucabBuf[dmaIdx++] = physXpos | ((iVar1 * 2 + 0x900) * 0x10) << 0x10;
+        ucabBuf[dmaIdx++] = 0;
+        ucabBuf[dmaIdx++] = GSReg::XYZ2;
+        ucabBuf[dmaIdx++] = 0;
+    } while (physXpos < 0x5800 + 640*16);
+
+    ucabBuf[dmaIdx++] = 0x425045;
+    ucabBuf[dmaIdx++] = 0;
+    ucabBuf[dmaIdx++] = GSReg::FOGCOL;
+    ucabBuf[dmaIdx++] = 0;
+
+    ucabBuf[dmaIdx++] = 0x27f0000; // (0, 639) -> (scissorY0, scissorY1)
+    ucabBuf[dmaIdx++] = scissorY1 << 0x10 | scissorY0;
+    ucabBuf[dmaIdx++] = GSReg::SCISSOR_1;
+    ucabBuf[dmaIdx++] = 0;
+
+    //traceln("dmaIdx=%d", dmaIdx);
+
+    int qwc = dmaIdx / 4;
+
+    // Write DMA Tag
+    ucabBuf[0] = 0x70000000 | (qwc - 1);
+    ucabBuf[1] = 0;
+
+    // write GIF Tag nloop
+    ucabBuf[4] |= (qwc - 2);
+
+    dmaSend(DmaChannel::GIF, startFrameDmaBuffer);
+    sceGsSyncPath(0, 0);
+}
+
+void startFrame()
+{
+    GsGParam_t* dp = GsGetGParam();
+    if (dp->omode == GS_MODE_DTV_480P){
+        startFrame640P();
+    } else {
+        startFrameInterlaced();
+    }
+}
+
 void endFrame()
 {
     //traceln("EndFrame");
@@ -906,6 +1249,7 @@ void endFrame()
         }
     */
 
+    // set target to 640 wide, 32bpp, address 0
     *pDmaProg_FRAME1Val = 0xa0000;
 
     FlushCache(WRITEBACK_DCACHE);
