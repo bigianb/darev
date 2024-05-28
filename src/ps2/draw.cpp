@@ -21,6 +21,8 @@ void drawOpaqueSprite(TextureHeader* pTex, int xpos, int ypos, int slot, bool ap
 
 void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool append, u32 vertexColor)
 {
+    const GsGParam_t* dp = GsGetGParam();
+
     // FLUSH followed by DIRECT, 12 qwords
     curDMABufTail[1] = 0x5000000c11000000ULL;  
 
@@ -50,8 +52,25 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
     curDMABufTail[0x11] = 0x47;     // TEST_1
     
     if (isInterlaced == 0) {
-        int primX = ypos * 0x10 + 0x7000;
-        int primY = xpos * 0x10 + 0x6c00;
+        int primX = xpos * 0x10 + 0x7000;
+        int primY = ypos * 0x10 + 0x6c00;
+        curDMABufTail[0x12] = 0x80008;
+        curDMABufTail[0x13] = 3;        // UV
+
+        curDMABufTail[0x14] = 0xa00000000 | (primY << 0x10) | primX;
+        curDMABufTail[0x15] = 5;        // XYZ2
+        
+        int primH = pTexData->height * 0x10;
+        int primW = pTexData->width * 0x10;
+
+        curDMABufTail[0x16] = ((primH + 8) << 0x10) | (primW + 8);
+        curDMABufTail[0x17] = 3;        // UV
+
+        curDMABufTail[0x18] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
+        curDMABufTail[0x19] = 5;        // XYZ2
+    } else if (dp->omode == GS_MODE_DTV_480P) {
+        int primX = xpos * 0x10 + 0x5800;
+        int primY = ypos * 0x10 + 0x7000;
         curDMABufTail[0x12] = 0x80008;
         curDMABufTail[0x13] = 3;        // UV
 

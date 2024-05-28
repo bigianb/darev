@@ -1,5 +1,6 @@
 #pragma once
 #include <tamtypes.h>
+#include <libgs.h>
 
 struct GsDispEnv
 {
@@ -40,6 +41,13 @@ extern volatile bool isEvenField;
 extern GsDispEnv displayEnvironment;
 extern s32 vblankSema;
 extern int isInterlaced;
+
+extern GsGParam_t gp_15;
+
+inline GsGParam_t* GsGetGParam(void)
+{
+    return &gp_15;
+}
 
 void initGs();
 void setDisplayRegs(GsDispEnv* regs);

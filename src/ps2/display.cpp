@@ -2,8 +2,6 @@
 #include <kernel.h>
 #include <ee_regs.h>
 #include <libgs.h>
-#include <gs_privileged.h>
-#include <gs_gp.h>
 
 #include "trace.h"
 #include "display.h"
@@ -90,12 +88,7 @@ void waitFramecountChange()
     } while (fc == frameCount);
 }
 
-static GsGParam_t gp_15 = {GS_INTERLACED, GS_MODE_NTSC, GS_FFMD_FRAME, 3};
-
-GsGParam_t* GsGetGParam(void)
-{
-    return &gp_15;
-}
+GsGParam_t gp_15 = {GS_INTERLACED, GS_MODE_NTSC, GS_FFMD_FRAME, 3};
 
 // 002056b0
 void GsResetGraph(short mode, short interlace, short omode, short ffmode)
@@ -119,6 +112,22 @@ void GsResetGraph(short mode, short interlace, short omode, short ffmode)
     }
     return;
 }
+
+#define GS_SET_DISPLAY(display_x, display_y,magnify_h,magnify_v,display_w,display_h) \
+		(u64)((display_x) & 0x00000FFF) <<  0 |	\
+		(u64)((display_y) & 0x000007FF) << 12 |	\
+		(u64)((magnify_h) & 0x0000000F) << 23 |	\
+		(u64)((magnify_v) & 0x00000003) << 27 |	\
+		(u64)((display_w) & 0x00000FFF) << 32 |	\
+		(u64)((display_h) & 0x000007FF) << 44
+
+#define GS_SET_TEX0(TBA, TBW, PSM, TW, TH, TCC, TFNCT, CBA, CPSM, CSM, CSA, CLD) \
+    (u64)((TBA)&0x00003FFF) << 0 | (u64)((TBW)&0x0000003F) << 14 |               \
+        (u64)((PSM)&0x0000003F) << 20 | (u64)((TW)&0x0000000F) << 26 |           \
+        (u64)((TH)&0x0000000F) << 30 | (u64)((TCC)&0x00000001) << 34 |           \
+        (u64)((TFNCT)&0x00000003) << 35 | (u64)((CBA)&0x00003FFF) << 37 |        \
+        (u64)((CPSM)&0x0000000F) << 51 | (u64)((CSM)&0x00000001) << 55 |         \
+        (u64)((CSA)&0x0000001F) << 56 | (u64)((CLD)&0x00000007) << 61
 
 GsDispEnv displayEnvironment;
 
@@ -244,8 +253,8 @@ void initGs()
     semaParam.max_count = 0x7ffffc17;
     vblankSema = CreateSema(&semaParam);
 
-    GsResetGraph(GS_INIT_RESET, GS_INTERLACED, GS_MODE_PAL, GS_FFMD_FRAME);
-//    GsResetGraph(GS_INIT_RESET, GS_NONINTERLACED, GS_MODE_DTV_480P, GS_FFMD_FRAME);
+//    GsResetGraph(GS_INIT_RESET, GS_INTERLACED, GS_MODE_PAL, GS_FFMD_FRAME);
+    GsResetGraph(GS_INIT_RESET, GS_NONINTERLACED, GS_MODE_DTV_480P, GS_FFMD_FRAME);
 
     vblankHandlerId = AddIntcHandler(2, vblank_handler, 0);
     EnableIntc(2);
