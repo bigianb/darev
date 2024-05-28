@@ -8,6 +8,8 @@
 #include "state.h"
 #include "dlist.h"
 
+#define GS_MODE_DTV_576P  0x53
+
 enum DmaChannel
 {
     VIF0 = 0,
@@ -134,8 +136,12 @@ GsDispEnv displayEnvironment;
 void SetDefDispEnv(void)
 {
     GsGParam_t* dp = GsGetGParam();
+
+    traceln("dp omode = 0x%x", dp->omode);
+
     displayEnvironment.pmode = 0x66;    // Enable Read circuit 2, Disble circuit 2, alpha reg, alpha Read Circuit 2, fixed alpha of 0
-    displayEnvironment.dispfb = 0x1400; // FBP: 0, FBW: 10 (640 pixels)
+    //displayEnvironment.dispfb = 0x1400; // FBP: 0, FBW: 10 (640 pixels)
+    displayEnvironment.dispfb = 0x1600; // FBP: 0, FBW: 11 (704 pixels)
     displayEnvironment.bgcolor = 0;
 
     if (dp->interlace) {
@@ -171,15 +177,51 @@ void SetDefDispEnv(void)
             u64 dh = dp->ffmode ? 511 : 255;
             displayEnvironment.display = dx | dy << 0xc | dh << 0x2c | 0x9ff01800000;
         }
-    } else {
-        int width = 640;
-        int height = 512;
+    } else if (dp->omode == GS_MODE_DTV_480P){
         int StartX = 232;
-        int StartXOffset = 0;
         int StartY = 35;
-        int StartYOffset = 0;
         int DW = 1440;
         int DH = 480;
+
+        int width = 704;
+        int height = 480;               // Display buffer width and height
+        int StartXOffset = 0;
+        int StartYOffset = 0;
+
+        int MagH = (DW / width) - 1;  // multiple of the screen width
+        int MagV = (DH / height) - 1; // multiple of the screen height
+
+        // Calculate the actual display width and height
+        DW = (MagH + 1) * width;
+        DH = (MagV + 1) * height;
+
+        // Keep the framebuffer in the center of the screen
+        StartX += (DW - ((MagH + 1) * width)) / 2;
+        StartY += (DH - ((MagV + 1) * height)) / 2;
+
+        traceln("MagH = 0x%x, DW = 0x%x", MagH, DW);
+        traceln("MagV = 0x%x, DH = 0x%x", MagV, DH);
+        traceln("StartX = 0x%x, StartY = 0x%x", StartX, StartY);
+
+        displayEnvironment.display = GS_SET_DISPLAY(
+                    StartX + StartXOffset, // X position in the display area (in VCK units)
+                    StartY + StartYOffset, // Y position in the display area (in Raster units)
+                    MagH,                  // Horizontal Magnification
+                    MagV,                  // Vertical Magnification
+                    DW - 1,                // Display area width
+                    DH - 1);               // Display area height
+    } else if (dp->omode == GS_MODE_DTV_576P){
+        int StartX = 320;
+        int StartY = 64;
+        int DW = 1312;
+        int DH = 576;
+
+        int width = 640;
+        int height = 512;
+        
+        int StartXOffset = 0;
+        int StartYOffset = 0;
+
         int MagH = (DW / width) - 1;  // multiple of the screen width
         int MagV = (DH / height) - 1; // multiple of the screen height
 
@@ -288,7 +330,7 @@ inline u32 makeXY(u32 x, u32 y)
     return x | (y << 16);
 }
 
-void build640PEndFrameDMA()
+void build480PEndFrameDMA()
 {
     frameDMAProg[2] = 0;
     frameDMAProg[3] = 0;
@@ -632,7 +674,7 @@ void buildFrameDMAProg()
 {
     GsGParam_t* dp = GsGetGParam();
     if (dp->omode == GS_MODE_DTV_480P){
-        build640PEndFrameDMA();
+        build480PEndFrameDMA();
     } else {
         buildInterlacedFrameDMA();
     }
@@ -994,7 +1036,7 @@ void startFrameInterlaced()
     sceGsSyncPath(0, 0);
 }
 
-void startFrame640P()
+void startFrame480P()
 {
     u32* ucabBuf = (u32*)UCAB_SEG(startFrameDmaBuffer); 
 
@@ -1152,7 +1194,7 @@ void startFrame()
 {
     GsGParam_t* dp = GsGetGParam();
     if (dp->omode == GS_MODE_DTV_480P){
-        startFrame640P();
+        startFrame480P();
     } else {
         startFrameInterlaced();
     }
