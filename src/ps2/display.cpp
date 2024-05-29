@@ -131,6 +131,24 @@ void GsResetGraph(short mode, short interlace, short omode, short ffmode)
         (u64)((CPSM)&0x0000000F) << 51 | (u64)((CSM)&0x00000001) << 55 |         \
         (u64)((CSA)&0x0000001F) << 56 | (u64)((CLD)&0x00000007) << 61
 
+#define GS_SET_PMODE(EN1,EN2,MMOD,AMOD,SLBG,ALP) \
+        ((u64)(EN1)     << 0)   | \
+        ((u64)(EN2)     << 1)   | \
+        ((u64)(001)     << 2)   | \
+        ((u64)(MMOD)    << 5)   | \
+        ((u64)(AMOD)	<< 6)	| \
+        ((u64)(SLBG)	<< 7)	| \
+        ((u64)(ALP)     << 8)
+
+#define WRITE_PMODE(EN1,EN2,MMOD,AMOD,SLBG,ALP) \
+        *(vu64*)gs_p_pmode = ((u64)(EN1) << 0)   | \
+        ((u64)(EN2)     << 1)   | \
+        ((u64)(001)     << 2)   | \
+        ((u64)(MMOD)    << 5)   | \
+        ((u64)(AMOD)	<< 6)	| \
+        ((u64)(SLBG)	<< 7)	| \
+        ((u64)(ALP)     << 8)
+
 GsDispEnv displayEnvironment;
 
 void SetDefDispEnv(void)
@@ -139,9 +157,9 @@ void SetDefDispEnv(void)
 
     traceln("dp omode = 0x%x", dp->omode);
 
-    displayEnvironment.pmode = 0x66;    // Enable Read circuit 2, Disble circuit 2, alpha reg, alpha Read Circuit 2, fixed alpha of 0
-    //displayEnvironment.dispfb = 0x1400; // FBP: 0, FBW: 10 (640 pixels)
-    displayEnvironment.dispfb = 0x1600; // FBP: 0, FBW: 11 (704 pixels)
+    //displayEnvironment.pmode = 0x66;    // Enable Read circuit 2, Disble circuit 1, alpha reg, alpha Read Circuit 2, fixed alpha of 0
+    displayEnvironment.pmode = GS_SET_PMODE(0, 1, 1, 1, 0, 0);
+    displayEnvironment.dispfb = 0x1400; // FBP: 0, FBW: 10 (640 pixels)
     displayEnvironment.bgcolor = 0;
 
     if (dp->interlace) {
@@ -183,7 +201,7 @@ void SetDefDispEnv(void)
         int DW = 1440;
         int DH = 480;
 
-        int width = 704;
+        int width = 640;
         int height = 480;               // Display buffer width and height
         int StartXOffset = 0;
         int StartYOffset = 0;
@@ -191,13 +209,13 @@ void SetDefDispEnv(void)
         int MagH = (DW / width) - 1;  // multiple of the screen width
         int MagV = (DH / height) - 1; // multiple of the screen height
 
-        // Calculate the actual display width and height
-        DW = (MagH + 1) * width;
-        DH = (MagV + 1) * height;
-
         // Keep the framebuffer in the center of the screen
         StartX += (DW - ((MagH + 1) * width)) / 2;
         StartY += (DH - ((MagV + 1) * height)) / 2;
+
+        // Calculate the actual display width and height
+        DW = (MagH + 1) * width;
+        DH = (MagV + 1) * height;
 
         traceln("MagH = 0x%x, DW = 0x%x", MagH, DW);
         traceln("MagV = 0x%x, DH = 0x%x", MagV, DH);
@@ -249,9 +267,21 @@ void setDisplayRegs(GsDispEnv* regs)
 {
     *(vu64*)gs_p_pmode = regs->pmode;
     *(vu64*)gs_p_smode2 = regs->smode2;
+    *(vu64*)gs_p_dispfb1 = regs->dispfb;
     *(vu64*)gs_p_dispfb2 = regs->dispfb;
+    *(vu64*)gs_p_display1 = regs->display;
     *(vu64*)gs_p_display2 = regs->display;
     *(vu64*)gs_p_bgcolor = regs->bgcolor;
+}
+
+void disableDisplay()
+{
+    *(vu64*)gs_p_pmode = displayEnvironment.pmode & 0xFFFFFFC;
+}
+
+void enableDisplay()
+{
+    *(vu64*)gs_p_pmode = displayEnvironment.pmode;
 }
 
 #define RQ_EE_VIF1_FIFO ((vu128*)A_EE_VIF1_FIFO)
@@ -303,13 +333,10 @@ void initGs()
 
     waitFramecountChange();
 
-    // read circuits off
-    WR_EE_GS_PMODE(0);
+    disableDisplay();
     waitFramecountChange();
 
-    WR_EE_GS_PMODE(0);
     SetDefDispEnv();
-    WR_EE_GS_PMODE(0);
     setDisplayRegs(&displayEnvironment);
 }
 
@@ -317,7 +344,6 @@ u64 zbuf_val;
 
 u32 frameDMAProg[4000] __attribute__((aligned(16)));
 u32* pDmaProg_RGBAQval;
-u32* pDmaProg_FRAME1Val;
 u32* pDmaProg_ALPHA1_FIX_val;
 
 inline u32 makeUV(u32 u, u32 v)
@@ -344,9 +370,7 @@ void build480PEndFrameDMA()
     frameDMAProg[10] = 0x45; // DTHE
     frameDMAProg[11] = 0;
 
-    pDmaProg_FRAME1Val = &frameDMAProg[12];
-    // Overridden to PSMCT32 in end frame
-    frameDMAProg[12] = 0x010a0000; // FBP = 0, FBW = 10 (640), PSM = PSMCT24
+    frameDMAProg[12] = 0x000a0000; // FBP = 0, FBW = 10 (640), PSM = PSMCT32
     frameDMAProg[13] = 0;
     frameDMAProg[14] = 0x4c; // FRAME_1
     frameDMAProg[15] = 0;
@@ -483,9 +507,7 @@ void buildInterlacedFrameDMA()
     frameDMAProg[10] = 0x45; // DTHE
     frameDMAProg[11] = 0;
 
-    pDmaProg_FRAME1Val = &frameDMAProg[12];
-    // Overridden to PSMCT32 in end frame
-    frameDMAProg[12] = 0x010a0000; // FBP = 0, FBW = 10 (640), PSM = PSMCT24
+    frameDMAProg[12] = 0x000a0000; // FBP = 0, FBW = 10 (640), PSM = PSMCT32
     frameDMAProg[13] = 0;
     frameDMAProg[14] = 0x4c; // FRAME_1
     frameDMAProg[15] = 0;
@@ -1299,9 +1321,6 @@ void endFrame()
             INT_ram_00325c80 += -8;
         }
     */
-
-    // set target to 640 wide, 32bpp, address 0
-    *pDmaProg_FRAME1Val = 0xa0000;
 
     FlushCache(WRITEBACK_DCACHE);
     dmaSend(DmaChannel::GIF, frameDMAProg);

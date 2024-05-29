@@ -55,3 +55,6 @@ void setDisplayRegs(GsDispEnv* regs);
 void initDisplay();
 void startFrame();
 void endFrame();
+
+void disableDisplay();
+void enableDisplay();
