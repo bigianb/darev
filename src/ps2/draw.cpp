@@ -31,7 +31,7 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
     curDMABufTail[3] = 0xe;
 
     curDMABufTail[4] = 0;
-    curDMABufTail[5] = 0x3f;        // TEXFLUSH
+    curDMABufTail[5] = GSReg::TEXFLUSH; 
     
     curDMABufTail[6] = 0;
     curDMABufTail[7] = 6;           // TEX0_1 = 0
@@ -40,13 +40,13 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
     curDMABufTail[9] = 0x14;        // TEX1_1 = 1 (Fixed LOD)
 
     curDMABufTail[0x0a] = vertexColor;  // Q=0
-    curDMABufTail[0x0b] = 1;         // RGBAQ
+    curDMABufTail[0x0b] = GSReg::RGBAQ; 
 
     curDMABufTail[0x0c] = 0x44;
     curDMABufTail[0x0d] = 0x42;     // ALPHA 1 = D=Cd, C=As, B=Cd, A = Cs. Cv = (Cs - Cd)*As>>7 + Cd
 
     curDMABufTail[0x0e] = 0x156;
-    curDMABufTail[0x0f] = 0;        // PRIM
+    curDMABufTail[0x0f] = GSReg::PRIM;
     
     curDMABufTail[0x10] = 0x3001d;
     curDMABufTail[0x11] = 0x47;     // TEST_1

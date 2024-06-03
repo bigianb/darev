@@ -325,8 +325,8 @@ void initGs()
     semaParam.max_count = 0x7ffffc17;
     vblankSema = CreateSema(&semaParam);
 
-//    GsResetGraph(GS_INIT_RESET, GS_INTERLACED, GS_MODE_PAL, GS_FFMD_FRAME);
-    GsResetGraph(GS_INIT_RESET, GS_NONINTERLACED, GS_MODE_DTV_480P, GS_FFMD_FRAME);
+   GsResetGraph(GS_INIT_RESET, GS_INTERLACED, GS_MODE_PAL, GS_FFMD_FRAME);
+//    GsResetGraph(GS_INIT_RESET, GS_NONINTERLACED, GS_MODE_DTV_480P, GS_FFMD_FRAME);
 
     vblankHandlerId = AddIntcHandler(2, vblank_handler, 0);
     EnableIntc(2);
@@ -400,24 +400,24 @@ void build480PEndFrameDMA()
     pDmaProg_RGBAQval = &frameDMAProg[32];
     frameDMAProg[32] = 0x00808080; // HIGHLIGHT mode
     frameDMAProg[33] = 0;
-    frameDMAProg[34] = 1; // RGBAQ
+    frameDMAProg[34] = GSReg::RGBAQ;
     frameDMAProg[35] = 0;
 
     frameDMAProg[36] = 0x156; // flat shaded sprite, textured, alpha blended, no fog, UV mapped, context 1
     frameDMAProg[37] = 0;
-    frameDMAProg[38] = 0; // PRIM
+    frameDMAProg[38] = GSReg::PRIM;
     frameDMAProg[39] = 0;
 
     pDmaProg_ALPHA1_FIX_val = &frameDMAProg[41];
 
     frameDMAProg[40] = 0x64; // 01 10 01 00, d=Cd, c=FIX, b=Cd, a=Cs. Cv=(Cs - Cd)*FIX>>7 + Cd
     frameDMAProg[41] = 0x80; // FIX
-    frameDMAProg[42] = 0x42; // ALPHA_1
+    frameDMAProg[42] = GSReg::ALPHA_1;
     frameDMAProg[43] = 0;
 
     frameDMAProg[44] = 0;
     frameDMAProg[45] = 0;
-    frameDMAProg[46] = 0x3f; // TEXFLUSH
+    frameDMAProg[46] = GSReg::TEXFLUSH;
     frameDMAProg[47] = 0;
 
     u64 tex0 = GS_SET_TEX0(0x1400, 0x0A, 0, // PSMCT32
@@ -988,7 +988,8 @@ void startFrameInterlaced()
         } else {
             local_30 = (ulong*)(ucabBuf + 0x2c);
     */
-    ucabBuf[dmaIdx++] = 0x80303030;
+    //ucabBuf[dmaIdx++] = 0x80303030;
+    ucabBuf[dmaIdx++] = 0x80FF0000;         // blue for debug
     ucabBuf[dmaIdx++] = 0;
     ucabBuf[dmaIdx++] = GSReg::RGBAQ;
     ucabBuf[dmaIdx++] = 0;
@@ -1144,7 +1145,8 @@ void startFrame480P()
     int dmaIdx = 40;
 
  
-    ucabBuf[dmaIdx++] = 0x80303030;
+    //ucabBuf[dmaIdx++] = 0x80303030;
+    ucabBuf[dmaIdx++] = 0x80FF0000;
     ucabBuf[dmaIdx++] = 0;
     ucabBuf[dmaIdx++] = GSReg::RGBAQ;
     ucabBuf[dmaIdx++] = 0;

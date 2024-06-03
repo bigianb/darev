@@ -13,8 +13,6 @@
 #include "dma_setters.h"
 #include "ptr_manip.h"
 
-#include "gs_privileged.h"
-
 #include "dlist.h"
 
 // for frameCount
@@ -86,9 +84,7 @@ void flushAndFinish()
     //traceln("flushAndFinish, taddr=0x%x", &flushAndFinishDma[0]);
 
     sceGsSyncPath(0,0);
-#if defined(__mips__)
-        *GS_REG_CSR  = 2;   // Shouldn't need this. Enable FINISH
-#endif
+    GS_SET_CSR_finish_evnt(1);   // Shouldn't need this. Enable FINISH
      
     setVif1_tadr(&flushAndFinishDma[0]);
 
@@ -433,10 +429,7 @@ int dmaHandler(int channel)
         } else {
             ++GSFinishCounter;
         }
-#if defined(__mips__)
-        *GS_REG_CSR  = 2;
-#endif
-        //GS_SET_CSR_finish_evnt(1);
+        GS_SET_CSR_finish_evnt(1);
     }
 
 //traceln("a. zeroOrTwo = %d", zeroOrTwo);
@@ -492,7 +485,7 @@ int dmaHandler(int channel)
                 if (pTexData->gsAllocInfo == nullptr) {
                     gsAllocateTex(pTexData);
                     if (pTexData->gsAllocInfo == nullptr) {
-                        //traceln("GS Allocation failed");
+                        traceln("GS Allocation failed");
                         if ((texId == 2) && ((currentActiveChannels & VIF1_ACTIVE) == 0)) {
                             waitingOnGSFinish = 1;
                             flushAndFinish();
