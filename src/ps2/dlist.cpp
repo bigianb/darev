@@ -83,14 +83,14 @@ void flushAndFinish()
 {
     //traceln("flushAndFinish, taddr=0x%x", &flushAndFinishDma[0]);
 
-    sceGsSyncPath(0,0);
-    GS_SET_CSR_finish_evnt(1);   // Shouldn't need this. Enable FINISH
+    //sceGsSyncPath(0,0);
+    //GS_SET_CSR_finish_evnt(1);   // Shouldn't need this. Enable FINISH
      
     setVif1_tadr(&flushAndFinishDma[0]);
 
     currentActiveChannels |= VIF1_ACTIVE;
     // from memory, chain mode, no ASP, DMA tag transferred, disable IRQ, start DMA.
-    setVif1_CHHR(0x145);
+    setVif1_CHCR(0x145);
 }
 
 const int GS_ALLOC_HEAP_SIZE = 178;
@@ -397,7 +397,6 @@ int dmaHandler(int channel)
     if ((dmaInProgress == 0) && (channel != START_CHANNEL)) {
         //traceln("dmaHandler - ignore as idle");
         // idle and this is not an instruction to start
-        ExitHandler();
         return 1;
     }
 
@@ -513,8 +512,9 @@ int dmaHandler(int channel)
 
                             setGif_madr(pTexData->gif_madr_val);
                             setGif_qwc(pTexData->qwc);
+
                             /* from memory, normal, no address, transfer DMA tag, disable IRQ bit, start DMA */
-                            setGif_CHHR(0x141);
+                            setGif_CHCR(0x141);
                         } else {
                             // GS memory location for texture
                             u16 dbp = pTexData->gsAllocInfo->dbp;
@@ -522,8 +522,9 @@ int dmaHandler(int channel)
                             u8* pGifUcab = (u8*)UNCACHED_SEG(pTexData->gif_tadr_val);
                             *(short*)(pGifUcab + 0x24) = dbp;
                             *(short*)(pGifUcab + 0x484) = dbp + 4;
+
                             // from memory, chain, no address, no tag transfer, disable IRQ bit, start DMA.
-                            setGif_CHHR(0x105);
+                            setGif_CHCR(0x105);
                         }
                         currentActiveChannels |= GIF_ACTIVE;
                     }
@@ -603,7 +604,7 @@ int dmaHandler(int channel)
 
                 curDmaNode = curDmaNode->next;
                 /* from memory, chain mode, no ASP, DMA tag transferred, disable IRQ, start DMA */
-                setVif1_CHHR(0x145);
+                setVif1_CHCR(0x145);
 
                 currentActiveChannels |= VIF1_ACTIVE;
             }
@@ -634,7 +635,7 @@ int GsIntcHandler(int cause)
     //traceln("GsIntcHandler(%x)", cause);
     dmaHandler(GS_FINISH_CHANNEL);
     ExitHandler();
-    return 0;
+    return 1;
 }
 
 void initDListHeads()
@@ -694,7 +695,8 @@ void initDMA()
     AddIntcHandler(0, GsIntcHandler, 0);
     EnableIntc(0);
 
-    GsPutIMR(0x7D00);  // mask all but FINISH
+    //GsPutIMR(0x7D00);  // mask all but FINISH
+    WR_EE_GS_IMR(0x7D00);  // mask all but FINISH
     WR_EE_GIF_MODE(4); // Intermittent transfer mode
 
     return;

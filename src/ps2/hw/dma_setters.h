@@ -1,6 +1,6 @@
 #pragma once
 
-inline void setVif1_CHHR(int val)
+inline void setVif1_CHCR(int val)
 {
     EE_SYNC();
     *(vu32*)0x10009000 = val;
@@ -12,7 +12,7 @@ inline void setVif1_tadr(void* val)
     EE_SYNC();
 }
 
-inline void setGif_CHHR(int val)
+inline void setGif_CHCR(int val)
 {
     EE_SYNC();
     *(vu32*)0x1000A000 = val;

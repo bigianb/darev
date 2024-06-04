@@ -51,6 +51,13 @@ void runScene(sceneHandler sceneFunc)
             WaitSema(vblankSema);
         }
 
+        for (int i=0; i<10; ++i){
+            vblankSetsMeToFF = 0;
+            while (vblankSetsMeToFF != 0xff) {
+                WaitSema(vblankSema);
+            }
+        }
+
         if (displayEnableCountdown < 1) {    
             // Enable read circuit 2, disable read circuit 1
             enableDisplay();

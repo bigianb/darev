@@ -35,7 +35,6 @@ static u32 dma_tadr[10] = {0x10008030, 0x10009030, 0x1000A030, 0x1000B030, 0x100
 
 void dmaSend(DmaChannel chan, u32* pData)
 {
-
     if ((*(vu32*)dma_chcr[chan] & 0x100) != 0) {
         int timeout = 0xffffff;
         do {
@@ -325,8 +324,8 @@ void initGs()
     semaParam.max_count = 0x7ffffc17;
     vblankSema = CreateSema(&semaParam);
 
-   GsResetGraph(GS_INIT_RESET, GS_INTERLACED, GS_MODE_PAL, GS_FFMD_FRAME);
-//    GsResetGraph(GS_INIT_RESET, GS_NONINTERLACED, GS_MODE_DTV_480P, GS_FFMD_FRAME);
+//   GsResetGraph(GS_INIT_RESET, GS_INTERLACED, GS_MODE_PAL, GS_FFMD_FRAME);
+    GsResetGraph(GS_INIT_RESET, GS_NONINTERLACED, GS_MODE_DTV_480P, GS_FFMD_FRAME);
 
     vblankHandlerId = AddIntcHandler(2, vblank_handler, 0);
     EnableIntc(2);
@@ -1146,7 +1145,7 @@ void startFrame480P()
 
  
     //ucabBuf[dmaIdx++] = 0x80303030;
-    ucabBuf[dmaIdx++] = 0x80FF0000;
+    ucabBuf[dmaIdx++] = 0x80FF0000;         // Blue for debugging
     ucabBuf[dmaIdx++] = 0;
     ucabBuf[dmaIdx++] = GSReg::RGBAQ;
     ucabBuf[dmaIdx++] = 0;
