@@ -20,6 +20,7 @@ DlistNode*
 queueDMA(u64* dma_buffer, int slot, TextureHeader* pTexData, DlistNode* headNode, bool prepend);
 
 void initTextureAllocStuff();
+void resetTextureAlloc();
 void initDMA();
 void kickoffDMA();
 void waitDMASema();

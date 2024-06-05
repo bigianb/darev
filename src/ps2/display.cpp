@@ -60,6 +60,7 @@ int vblankHandlerId;
 volatile int vblankSetsMeToFF;
 volatile bool isOddField;
 volatile bool isEvenField;
+volatile int vblCount = 0;
 
 int isInterlaced;
 s32 vblankSema;
@@ -74,19 +75,19 @@ int vblank_handler(int cause)
     isOddField = (csr & GS_CSR_FIELD) == GS_CSR_FIELD;
     isEvenField = !isOddField;
     
-    ++frameCount;
+    ++vblCount;
     iSignalSema(vblankSema);
 
     ExitHandler();
     return 0;
 }
 
-void waitFramecountChange()
+void spinWaitVbl()
 {
-    int fc = frameCount;
+    int fc = vblCount;
     do {
         asm volatile("nop\nnop\nnop\nnop\nnop");
-    } while (fc == frameCount);
+    } while (fc == vblCount);
 }
 
 GsGParam_t gp_15 = {GS_INTERLACED, GS_MODE_NTSC, GS_FFMD_FRAME, 3};
@@ -130,7 +131,7 @@ void GsResetGraph(short mode, short interlace, short omode, short ffmode)
         (u64)((CPSM)&0x0000000F) << 51 | (u64)((CSM)&0x00000001) << 55 |         \
         (u64)((CSA)&0x0000001F) << 56 | (u64)((CLD)&0x00000007) << 61
 
-#define GS_SET_PMODE(EN1,EN2,MMOD,AMOD,SLBG,ALP) \
+#define GS_BUILD_PMODE(EN1,EN2,MMOD,AMOD,SLBG,ALP) \
         ((u64)(EN1)     << 0)   | \
         ((u64)(EN2)     << 1)   | \
         ((u64)(001)     << 2)   | \
@@ -157,7 +158,7 @@ void SetDefDispEnv(void)
     traceln("dp omode = 0x%x", dp->omode);
 
     //displayEnvironment.pmode = 0x66;    // Enable Read circuit 2, Disble circuit 1, alpha reg, alpha Read Circuit 2, fixed alpha of 0
-    displayEnvironment.pmode = GS_SET_PMODE(0, 1, 1, 1, 0, 0);
+    displayEnvironment.pmode = GS_BUILD_PMODE(0, 1, 1, 1, 0, 0);
     displayEnvironment.dispfb = 0x1400; // FBP: 0, FBW: 10 (640 pixels)
     displayEnvironment.bgcolor = 0;
 
@@ -330,10 +331,10 @@ void initGs()
     vblankHandlerId = AddIntcHandler(2, vblank_handler, 0);
     EnableIntc(2);
 
-    waitFramecountChange();
+    spinWaitVbl();
 
     disableDisplay();
-    waitFramecountChange();
+    spinWaitVbl();
 
     SetDefDispEnv();
     setDisplayRegs(&displayEnvironment);
@@ -430,7 +431,10 @@ void build480PEndFrameDMA()
     0,      // CSA
     0       // CLD
      );
-    *(u64*)&frameDMAProg[48] = tex0;
+
+    // avoids a type punning warning
+    u32* p = &frameDMAProg[48];
+    *(u64*)p = tex0;
     frameDMAProg[50] = 6; // TEX0_1
     frameDMAProg[51] = 0;
 

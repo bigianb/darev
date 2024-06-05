@@ -34,7 +34,6 @@ enum GSReg
     TRXDIR = 0x53
 };
 
-extern volatile int frameCount;
 extern volatile int vblankSetsMeToFF;
 extern volatile bool isOddField;
 extern volatile bool isEvenField;

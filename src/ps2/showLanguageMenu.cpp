@@ -22,9 +22,9 @@ int showLanguageMenu()
 {
     TextureHeader* langmenuTex = (TextureHeader*)findLmpEntry("langmenu.lmp", "langmenu.tex");
     drawOpaqueSprite(langmenuTex, 0, 0, 1, 0);
-    TextureHeader* menuLongTex = (TextureHeader*)findLmpEntry("hud.lmp", "menulong.tex");
+    //TextureHeader* menuLongTex = (TextureHeader*)findLmpEntry("hud.lmp", "menulong.tex");
 
-    drawMenu(0x140, 0x182, languageSelectMenuData, 0x80464646, 0x80408080, (Font*)menuFont, menuLongTex);
+    //drawMenu(0x140, 0x182, languageSelectMenuData, 0x80464646, 0x80408080, (Font*)menuFont, menuLongTex);
 
     updateSelectedMenuItem(languageSelectMenuData, -1);
 

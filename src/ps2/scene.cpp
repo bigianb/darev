@@ -45,7 +45,7 @@ void runScene(sceneHandler sceneFunc)
         sceGsSyncPath(0,0);
         sceneFrameNum += 1;
         frameCount += 1;
-        //FUN_ram_00140a78();
+//        resetTextureAlloc();
         //traceln("Wait on vbl sema id = %d", vblankSema);
         while (vblankSetsMeToFF != 0xff) {
             WaitSema(vblankSema);

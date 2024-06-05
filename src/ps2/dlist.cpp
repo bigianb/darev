@@ -2,6 +2,7 @@
 #include <kernel.h>
 #include <ee_regs.h>
 #include <tamtypes.h>
+#include <libgs.h>
 
 #include "trace.h"
 
@@ -16,7 +17,7 @@
 #include "dlist.h"
 
 // for frameCount
-#include "display.h"
+#include "state.h"
 #include "texture.h"
 
 int dmaSemaId;
@@ -82,10 +83,6 @@ u32 flushAndFinishDma[12] __attribute__((aligned(16))) = {
 void flushAndFinish()
 {
     //traceln("flushAndFinish, taddr=0x%x", &flushAndFinishDma[0]);
-
-    //sceGsSyncPath(0,0);
-    //GS_SET_CSR_finish_evnt(1);   // Shouldn't need this. Enable FINISH
-     
     setVif1_tadr(&flushAndFinishDma[0]);
 
     currentActiveChannels |= VIF1_ACTIVE;
@@ -123,11 +120,11 @@ void commitTex(int idx, TextureHeader* tex)
     return;
 }
 
+const int gsInitAlloc_initSize = 0xCF0;
+const int gsInitAlloc_initDbp = 0x3310; // 13072. Why not 0x3200?
+
 void initTextureAllocStuff(void)
 {
-    const int gsInitAlloc_initSize = 0xCF0;
-    const int gsInitAlloc_initDbp = 0x3310; // 13072
-
     for (int i = 0; i < 8; ++i) {
         comittedTexturesGSInfo[i] = nullptr;
     }
@@ -219,7 +216,90 @@ void initTextureAllocStuff(void)
     return;
 }
 
-int remainingGSMem = 10000000;
+int smallestTexGSAllocated = 10000000;
+
+void resetTextureAlloc()
+{
+    /*
+    if ((BYTE_ram_00324628 != 0) && ((char)BYTE_ram_00324628 < '\n')) {
+      BYTE_ram_00324628 = BYTE_ram_00324628 + 1;
+    }
+    */
+
+    traceln("resetTextureAlloc");
+
+    smallestTexGSAllocated = 10000000;
+
+    for (int i = 0; i < 8; ++i) {
+        if (comittedTexturesGSInfo[i] != nullptr) {
+            comittedTexturesGSInfo[i]->commitCount -= 1;
+            comittedTexturesGSInfo[i] = nullptr;
+        }
+    }
+
+    GSAllocInfo* curInfo = gsAllocListHead->next;
+    GSAllocInfo* nextInfo = curInfo->next;
+    while (nextInfo != nullptr && frameCount <= curInfo->frameCountPlusOne) {
+        curInfo = nextInfo;
+        nextInfo = curInfo->next;
+    }
+
+    if (curInfo->allocTex != nullptr) {
+        *curInfo->allocTex = nullptr;
+        curInfo->allocTex = nullptr;
+    }
+
+    while (nextInfo != nullptr && nextInfo->next) {
+        while (nextInfo->frameCountPlusOne < frameCount) {
+            if (nextInfo->commitCount != 0) {
+                for (int i = 0; i < 8; ++i) {
+                    // How can this be, we cleared them all at the top.
+                    if (comittedTexturesGSInfo[i] == nextInfo) {
+                        comittedTexturesGSInfo[i]->commitCount -= 1;
+                        comittedTexturesGSInfo[i] = nullptr;
+                    }
+                }
+            }
+
+            GSAllocInfo* infoToFree = nextInfo;
+
+            if (infoToFree->allocTex) {
+                *infoToFree->allocTex = nullptr;
+            }
+
+            // Remove infoToFree from the list
+            nextInfo = infoToFree->next;
+            nextInfo->prev = curInfo;
+            curInfo->next = nextInfo;
+
+            curInfo->size += infoToFree->size;
+
+            // prepend the removed node to the free list
+            infoToFree->next = firstFreeGSAlloc;
+            firstFreeGSAlloc = infoToFree;
+            
+            if (nextInfo->next == nullptr) {
+                return;
+            }
+        }
+
+        curInfo = nextInfo;
+        nextInfo = nextInfo->next;
+
+        while (nextInfo != nullptr && frameCount <= curInfo->frameCountPlusOne) {
+            curInfo = nextInfo;
+            nextInfo = nextInfo->next;
+        }
+        if (nextInfo) {       
+            if (curInfo->allocTex) {
+                *curInfo->allocTex = nullptr;
+                curInfo->allocTex = nullptr;
+            }
+        }
+    }
+
+    return;
+}
 
 void gsAllocateTex(TextureHeader* tex)
 {
@@ -227,8 +307,8 @@ void gsAllocateTex(TextureHeader* tex)
     if (tex->requiredGSMem == 0) {
         requiredGSMem = 1;
     }
-    //traceln("requiredGSMem = 0x%x, remainingGSMem = 0x%x", requiredGSMem, remainingGSMem);
-    if (requiredGSMem <= remainingGSMem) {
+    traceln("requiredGSMem = 0x%x, smallestTexGSAllocated = 0x%x", requiredGSMem, smallestTexGSAllocated);
+    if (requiredGSMem <= smallestTexGSAllocated) {
         GSAllocInfo* pGSInfo = gsAllocListHead->next;
         //traceln("pGSInfo = %p", pGSInfo);
         //traceln("pGSInfo->next = %p", pGSInfo->next);
@@ -249,10 +329,10 @@ void gsAllocateTex(TextureHeader* tex)
                 //traceln("Step to next GSInfo");
             }
             //traceln("nextGSInfo = %p", nextGSInfo);
-            if (nextGSInfo != NULL) {
+            if (nextGSInfo != nullptr) {
                 pGSInfo->frameCountPlusOne = frameCount + 1;
                 GSAllocInfo* newGSInfo = firstFreeGSAlloc;
-                if ((requiredGSMem + 4 < (int)pGSInfo->size) && (newGSInfo != NULL)) {
+                if ((requiredGSMem + 4 < (int)pGSInfo->size) && (newGSInfo != nullptr)) {
                     //traceln("setting up new GSInfo");
                     firstFreeGSAlloc = firstFreeGSAlloc->next;
 
@@ -263,13 +343,13 @@ void gsAllocateTex(TextureHeader* tex)
                     newGSInfo->next = pGSInfo->next;
 
                     newGSInfo->dbp = pGSInfo->dbp + requiredGSMem;
-                    
-                    if (pGSInfo->next){
+
+                    if (pGSInfo->next) {
                         pGSInfo->next->prev = newGSInfo;
                     }
                     pGSInfo->next = newGSInfo;
 
-                    newGSInfo->allocTex = NULL;
+                    newGSInfo->allocTex = nullptr;
                 }
                 tex->gsAllocInfo = pGSInfo;
                 if (pGSInfo->allocTex) {
@@ -277,20 +357,22 @@ void gsAllocateTex(TextureHeader* tex)
                 }
                 pGSInfo->allocTex = &tex->gsAllocInfo;
 
-                //traceln("allocted dbp = 0x%x, size=0x%x", pGSInfo->dbp, pGSInfo->size);
+                traceln("allocted dbp = 0x%x, size=0x%x", pGSInfo->dbp, pGSInfo->size);
+                traceln("frameCount = %d, pGSInfo->frameCountPlusOne=%d", frameCount, pGSInfo->frameCountPlusOne);
+                traceln("pGSInfo->commitCount = %p", pGSInfo->commitCount);
 
                 return;
             }
         }
 
-        if (requiredGSMem < remainingGSMem) {
-            remainingGSMem = requiredGSMem;
+        if (requiredGSMem < smallestTexGSAllocated) {
+            smallestTexGSAllocated = requiredGSMem;
         }
     }
 
     GSAllocInfo* pGSInfo = gsAllocListTail->prev->prev;
-    //traceln("pGSInfo = %p", pGSInfo);
-    if (pGSInfo != NULL) {
+    traceln("Bigger than previous allocs pGSInfo = %p", pGSInfo);
+    if (pGSInfo != nullptr) {
         GSAllocInfo* nextGSInfo = gsAllocListTail->prev;
         GSAllocInfo** ppGVar3;
         do {
@@ -431,7 +513,7 @@ int dmaHandler(int channel)
         GS_SET_CSR_finish_evnt(1);
     }
 
-//traceln("a. zeroOrTwo = %d", zeroOrTwo);
+    //traceln("a. zeroOrTwo = %d", zeroOrTwo);
     // doing VIF and we've finished the ones for this texture
     if ((zeroOrTwo == VIF1_ACTIVE) && (GSFinishCounter == nullNodeCounter)) {
         while (zeroOrTwo == VIF1_ACTIVE && curDmaSlot < 8) {
@@ -449,7 +531,7 @@ int dmaHandler(int channel)
         };
     }
 
-//traceln("b. zeroOrTwo = %d", zeroOrTwo);
+    //traceln("b. zeroOrTwo = %d", zeroOrTwo);
 
     // mark the channel that triggered this interrupt inactive.
     currentActiveChannels &= ~(1 << (channel & 0x1f));
@@ -480,7 +562,11 @@ int dmaHandler(int channel)
             //traceln("pTexData = 0x%x", pTexData);
             //traceln("curDmaSlot = 0x%x", curDmaSlot);
             if (pTexData != nullptr) {
-                //traceln("pTexData->gsAllocInfo = 0x%x", pTexData->gsAllocInfo);
+                traceln("pTexData->gsAllocInfo = 0x%x", pTexData->gsAllocInfo);
+                traceln("allocted dbp = 0x%x, size=0x%x", pTexData->gsAllocInfo->dbp, pTexData->gsAllocInfo->size);
+                traceln("frameCount = %d, pGSInfo->frameCountPlusOne=%d", frameCount, pTexData->gsAllocInfo->frameCountPlusOne);
+                traceln("pGSInfo->commitCount = %p", pTexData->gsAllocInfo->commitCount);
+
                 if (pTexData->gsAllocInfo == nullptr) {
                     gsAllocateTex(pTexData);
                     if (pTexData->gsAllocInfo == nullptr) {
@@ -619,7 +705,7 @@ int dmaHandler(int channel)
         iSignalSema(dmaSemaId);
     }
 
-//traceln("handler done");
+    //traceln("handler done");
     ExitHandler();
     return 1;
 }
@@ -669,15 +755,15 @@ void initDMA()
 {
     // VIFs transfer tag, gif does not.
 #if defined(__mips__)
-    *(vu32*)0x10008000 = *(vu32*)0x10008000 | 0x40;             // VIF0_DCHR
-    *(vu32*)0x10009000 = *(vu32*)0x10009000 | 0x40;             // VIF1_DCHR
-    *(vu32*)0x1000A000 = *(vu32*)0x1000A000 & 0xffffffbf;       // GIF_DCHR
+    *(vu32*)0x10008000 = *(vu32*)0x10008000 | 0x40;       // VIF0_DCHR
+    *(vu32*)0x10009000 = *(vu32*)0x10009000 | 0x40;       // VIF1_DCHR
+    *(vu32*)0x1000A000 = *(vu32*)0x1000A000 & 0xffffffbf; // GIF_DCHR
     FlushCache(0);
 #endif
-	
+
     activeDlistBank = 1;
     dlistBankBeingUploaded = 0;
-    
+
     initDListHeads();
 
     ee_sema_t dmaSema;
@@ -696,8 +782,8 @@ void initDMA()
     EnableIntc(0);
 
     //GsPutIMR(0x7D00);  // mask all but FINISH
-    WR_EE_GS_IMR(0x7D00);  // mask all but FINISH
-    WR_EE_GIF_MODE(4); // Intermittent transfer mode
+    WR_EE_GS_IMR(0x7D00); // mask all but FINISH
+    WR_EE_GIF_MODE(4);    // Intermittent transfer mode
 
     return;
 }
