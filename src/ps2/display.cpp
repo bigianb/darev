@@ -1,7 +1,6 @@
 
 #include <kernel.h>
 #include <ee_regs.h>
-#include <libgs.h>
 
 #include "trace.h"
 #include "display.h"
@@ -115,7 +114,7 @@ void GsResetGraph(short mode, short interlace, short omode, short ffmode)
     return;
 }
 
-#define GS_SET_DISPLAY(display_x, display_y,magnify_h,magnify_v,display_w,display_h) \
+#define GS_BUILD_DISPLAY(display_x, display_y,magnify_h,magnify_v,display_w,display_h) \
 		(u64)((display_x) & 0x00000FFF) <<  0 |	\
 		(u64)((display_y) & 0x000007FF) << 12 |	\
 		(u64)((magnify_h) & 0x0000000F) << 23 |	\
@@ -123,7 +122,7 @@ void GsResetGraph(short mode, short interlace, short omode, short ffmode)
 		(u64)((display_w) & 0x00000FFF) << 32 |	\
 		(u64)((display_h) & 0x000007FF) << 44
 
-#define GS_SET_TEX0(TBA, TBW, PSM, TW, TH, TCC, TFNCT, CBA, CPSM, CSM, CSA, CLD) \
+#define GS_BUILD_TEX0(TBA, TBW, PSM, TW, TH, TCC, TFNCT, CBA, CPSM, CSM, CSA, CLD) \
     (u64)((TBA)&0x00003FFF) << 0 | (u64)((TBW)&0x0000003F) << 14 |               \
         (u64)((PSM)&0x0000003F) << 20 | (u64)((TW)&0x0000000F) << 26 |           \
         (u64)((TH)&0x0000000F) << 30 | (u64)((TCC)&0x00000001) << 34 |           \
@@ -221,7 +220,7 @@ void SetDefDispEnv(void)
         traceln("MagV = 0x%x, DH = 0x%x", MagV, DH);
         traceln("StartX = 0x%x, StartY = 0x%x", StartX, StartY);
 
-        displayEnvironment.display = GS_SET_DISPLAY(
+        displayEnvironment.display = GS_BUILD_DISPLAY(
                     StartX + StartXOffset, // X position in the display area (in VCK units)
                     StartY + StartYOffset, // Y position in the display area (in Raster units)
                     MagH,                  // Horizontal Magnification
@@ -251,7 +250,7 @@ void SetDefDispEnv(void)
         StartX += (DW - ((MagH + 1) * width)) / 2;
         StartY += (DH - ((MagV + 1) * height)) / 2;
 
-        displayEnvironment.display = GS_SET_DISPLAY(
+        displayEnvironment.display = GS_BUILD_DISPLAY(
                     StartX + StartXOffset, // X position in the display area (in VCK units)
                     StartY + StartYOffset, // Y position in the display area (in Raster units)
                     MagH,                  // Horizontal Magnification
@@ -420,7 +419,7 @@ void build480PEndFrameDMA()
     frameDMAProg[46] = GSReg::TEXFLUSH;
     frameDMAProg[47] = 0;
 
-    u64 tex0 = GS_SET_TEX0(0x1400, 0x0A, 0, // PSMCT32
+    u64 tex0 = GS_BUILD_TEX0(0x1400, 0x0A, 0, // PSMCT32
     10,     // TW
     10,     // TH
     0,      //RGB
@@ -433,8 +432,10 @@ void build480PEndFrameDMA()
      );
 
     // avoids a type punning warning
-    u32* p = &frameDMAProg[48];
-    *(u64*)p = tex0;
+    //u32* p = &frameDMAProg[48];
+    //*(u64*)p = tex0;
+    *(u64*)&frameDMAProg[48] = tex0;
+
     frameDMAProg[50] = 6; // TEX0_1
     frameDMAProg[51] = 0;
 

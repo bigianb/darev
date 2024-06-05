@@ -95,7 +95,7 @@ int Kprintf(const char* fmt, va_list args)
     return 0;
 }
 
-#if 1
+#if 0
 void trace(const char* fmt, ...)
 {
     va_list args;
