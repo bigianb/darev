@@ -563,10 +563,11 @@ int dmaHandler(int channel)
             //traceln("curDmaSlot = 0x%x", curDmaSlot);
             if (pTexData != nullptr) {
                 traceln("pTexData->gsAllocInfo = 0x%x", pTexData->gsAllocInfo);
-                traceln("allocted dbp = 0x%x, size=0x%x", pTexData->gsAllocInfo->dbp, pTexData->gsAllocInfo->size);
-                traceln("frameCount = %d, pGSInfo->frameCountPlusOne=%d", frameCount, pTexData->gsAllocInfo->frameCountPlusOne);
-                traceln("pGSInfo->commitCount = %p", pTexData->gsAllocInfo->commitCount);
-
+                if (pTexData->gsAllocInfo){
+                    traceln("allocted dbp = 0x%x, size=0x%x", pTexData->gsAllocInfo->dbp, pTexData->gsAllocInfo->size);
+                    traceln("frameCount = %d, pGSInfo->frameCountPlusOne=%d", frameCount, pTexData->gsAllocInfo->frameCountPlusOne);
+                    traceln("pGSInfo->commitCount = %p", pTexData->gsAllocInfo->commitCount);
+                }
                 if (pTexData->gsAllocInfo == nullptr) {
                     gsAllocateTex(pTexData);
                     if (pTexData->gsAllocInfo == nullptr) {
