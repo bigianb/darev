@@ -432,9 +432,8 @@ void build480PEndFrameDMA()
      );
 
     // avoids a type punning warning
-    //u32* p = &frameDMAProg[48];
-    //*(u64*)p = tex0;
-    *(u64*)&frameDMAProg[48] = tex0;
+    u32* p = &frameDMAProg[48];
+    *(u64*)p = tex0;
 
     frameDMAProg[50] = 6; // TEX0_1
     frameDMAProg[51] = 0;

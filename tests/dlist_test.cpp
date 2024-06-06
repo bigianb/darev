@@ -10,7 +10,7 @@ extern int firstFreeDlistNodeIndex;
 extern int activeDlistBank; // 0 or 1
 extern DlistNode* dlistHeads[2][8];
 extern int dmaInProgress;
-extern int activeDmaBank;
+extern int activeDlistBank;
 extern int nullNodeCounter;
 extern int GSFinishCounter;
 extern int curDmaSlot;
@@ -151,13 +151,13 @@ bool test_DmaHandler()
 
     DlistNode* node = queueDMA(dmaBuffer, 5, &tex1->header, nullptr, false);
     
-    expectEqual(activeDmaBank, 0);
+    expectEqual(activeDlistBank, 1);
     expectEqual(dmaInProgress, 0);
     
     // kickoff will step forward to the first slot in use which is 5 in this case,
     // allocate a GS location for tex1 and start the GIF transfer.
     kickoffDMA();
-    expectEqual(activeDmaBank, 1);
+    expectEqual(activeDlistBank, 0);
     expectEqual(dmaInProgress, 1);
     expectEqual(curDmaSlot, 5);
     // texture transfer has started but need to wait until it has finished before VIF

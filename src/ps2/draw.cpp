@@ -33,10 +33,10 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
     curDMABufTail[4] = 0;
     curDMABufTail[5] = GSReg::TEXFLUSH; 
     
-    curDMABufTail[6] = 0;
+    curDMABufTail[6] = 0;           // has to be at byte offset 0x30 (see dlist handler)
     curDMABufTail[7] = 6;           // TEX0_1 = 0
 
-    curDMABufTail[8] = 1;
+    curDMABufTail[8] = 1;           // has to be at byte offset 0x40 (see dlist handler)
     curDMABufTail[9] = 0x14;        // TEX1_1 = 1 (Fixed LOD)
 
     curDMABufTail[0x0a] = vertexColor;  // Q=0

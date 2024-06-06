@@ -82,7 +82,7 @@ u32 flushAndFinishDma[12] __attribute__((aligned(16))) = {
 
 void flushAndFinish()
 {
-    //traceln("flushAndFinish, taddr=0x%x", &flushAndFinishDma[0]);
+    traceln("flushAndFinish, taddr=0x%x", &flushAndFinishDma[0]);
     setVif1_tadr(&flushAndFinishDma[0]);
 
     currentActiveChannels |= VIF1_ACTIVE;
@@ -476,16 +476,16 @@ int texId_0_or_1 = 0;
 
 int dmaHandler(int channel)
 {
-    //traceln("dmaHandler(%d)", channel);
+    traceln("dmaHandler(%d), currentActiveChannels = 0x%x", channel, currentActiveChannels);
 
     if ((dmaInProgress == 0) && (channel != START_CHANNEL)) {
-        //traceln("dmaHandler - ignore as idle");
+        traceln("dmaHandler - ignore as idle");
         // idle and this is not an instruction to start
         return 1;
     }
 
     if (channel == START_CHANNEL) {
-        //traceln("dmaHandler - start");
+        traceln("dmaHandler - start");
         // kickoff new transfer
         curDmaSlot = 0;
 
@@ -504,7 +504,7 @@ int dmaHandler(int channel)
     }
 
     if (channel == GS_FINISH_CHANNEL) {
-        //traceln("dmaHandler - GS Finish");
+        traceln("dmaHandler - GS Finish");
         if ((zeroOrTwo & 2) == 0) {
             uncommitTex(0);
             uncommitTex(1);
@@ -565,11 +565,6 @@ int dmaHandler(int channel)
             //traceln("curDmaSlot = 0x%x", curDmaSlot);
             if (pTexData != nullptr) {
                 traceln("pTexData->gsAllocInfo = 0x%x", pTexData->gsAllocInfo);
-                if (pTexData->gsAllocInfo){
-                    traceln("allocted dbp = 0x%x, size=0x%x", pTexData->gsAllocInfo->dbp, pTexData->gsAllocInfo->size);
-                    traceln("frameCount = %d, pGSInfo->frameCountPlusOne=%d", frameCount, pTexData->gsAllocInfo->frameCountPlusOne);
-                    traceln("pGSInfo->commitCount = %p", pTexData->gsAllocInfo->commitCount);
-                }
                 if (pTexData->gsAllocInfo == nullptr) {
                     gsAllocateTex(pTexData);
                     if (pTexData->gsAllocInfo == nullptr) {
@@ -579,6 +574,10 @@ int dmaHandler(int channel)
                             flushAndFinish();
                         }
                     } else {
+                        traceln("allocted dbp = 0x%x, size=0x%x", pTexData->gsAllocInfo->dbp, pTexData->gsAllocInfo->size);
+                        traceln("frameCount = %d, pGSInfo->frameCountPlusOne=%d", frameCount, pTexData->gsAllocInfo->frameCountPlusOne);
+                        traceln("pGSInfo->commitCount = %p", pTexData->gsAllocInfo->commitCount);
+
                         textureBeingTransferred = pTexData;
                         commitTex(texId + 2, pTexData);
                         if (pTexData->gif_tadr_val == nullptr) {
@@ -620,6 +619,7 @@ int dmaHandler(int channel)
                     texId = -1; // done
                 } else {
                     // register texture
+                    traceln("already allocated, just flag as used");
                     commitTex(texId + 2, pTexData);
                 }
             }
@@ -630,10 +630,10 @@ int dmaHandler(int channel)
 
     // if VIF1 is inactive, think about starting a VIF1 transfer
     if (((zeroOrTwo | currentActiveChannels) & VIF1_ACTIVE) == 0) {
-        //traceln("consider VIF transfer");
-        //traceln("zeroOrTwo = 0x%x", zeroOrTwo);
-        //traceln("currentActiveChannels = 0x%x", currentActiveChannels);
-        //traceln("curDmaNode = %p", curDmaNode);
+        traceln("consider VIF transfer");
+        traceln("  zeroOrTwo = 0x%x", zeroOrTwo);
+        traceln("  currentActiveChannels = 0x%x", currentActiveChannels);
+        traceln("  curDmaNode = %p", curDmaNode);
 
         // VIF1 inactive
         if (curDmaNode == nullptr) {
@@ -651,10 +651,10 @@ int dmaHandler(int channel)
                 if (pTexData->gsAllocInfo == nullptr || pTexData == textureBeingTransferred) {
                     // Can't start the VIF transfer if we're waiting for the texture to be transferred or if there
                     // is no space yet to hold the texture
-                    //traceln("Transferring Tex, hold off on VIF");
+                    traceln("Transferring Tex, hold off on VIF");
                     doVif = false;
                 } else {
-                    //traceln("Do VIF transfer");
+                    traceln("Do VIF transfer");
                     // 0 or 1
                     commitTex(texId_0_or_1, pTexData);
 
@@ -689,6 +689,7 @@ int dmaHandler(int channel)
                 }
             }
             if (doVif) {
+                traceln("setting vif tadr to 0x%x", curDmaNode->pCleanDmaData);
                 setVif1_tadr(curDmaNode->pCleanDmaData);
 
                 curDmaNode = curDmaNode->next;

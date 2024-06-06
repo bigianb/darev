@@ -38,3 +38,4 @@ inline s32 AddDmacHandler(s32 channel, s32 (*handler)(s32 channel), s32 next) {r
 
 inline void GsPutIMR(int ){}
 inline void WR_EE_GIF_MODE(int){}
+inline void WR_EE_GS_IMR(int){}
