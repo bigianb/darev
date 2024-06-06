@@ -100,24 +100,26 @@ GSAllocInfo* comittedTexturesGSInfo[8];
 
 void uncommitTex(int idx)
 {
-    if (comittedTexturesGSInfo[idx]) {
-        comittedTexturesGSInfo[idx]->commitCount -= 1;
-        comittedTexturesGSInfo[idx] = nullptr;
+    if(idx > 0 && idx < 8){
+        if (comittedTexturesGSInfo[idx]) {
+            comittedTexturesGSInfo[idx]->commitCount -= 1;
+            comittedTexturesGSInfo[idx] = nullptr;
+        }
     }
-    return;
 }
 
 void commitTex(int idx, TextureHeader* tex)
 {
-    if (tex->gsAllocInfo) {
-        if (comittedTexturesGSInfo[idx]) {
-            comittedTexturesGSInfo[idx]->commitCount -= 1;
-        }
-        comittedTexturesGSInfo[idx] = tex->gsAllocInfo;
+    if(idx > 0 && idx < 8){
+        if (tex->gsAllocInfo) {
+            if (comittedTexturesGSInfo[idx]) {
+                comittedTexturesGSInfo[idx]->commitCount -= 1;
+            }
+            comittedTexturesGSInfo[idx] = tex->gsAllocInfo;
 
-        tex->gsAllocInfo->commitCount += 1;
+            tex->gsAllocInfo->commitCount += 1;
+        }
     }
-    return;
 }
 
 const int gsInitAlloc_initSize = 0xCF0;
@@ -470,7 +472,7 @@ void gsAllocateTex(TextureHeader* tex)
 }
 
 // 0 or 1, used to define texture registration
-int texId_0_or_1;
+int texId_0_or_1 = 0;
 
 int dmaHandler(int channel)
 {
