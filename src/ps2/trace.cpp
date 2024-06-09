@@ -75,8 +75,8 @@ int Kprintf(const char* fmt, va_list args)
                 case 'x':
                 case 'p':
                 {
-                    unsigned int val = va_arg(args, unsigned int);
-                    KprintHexnum(val);
+                    void *pval = va_arg(args, void *);
+                    KprintHexnum((size_t)(pval));
                 } break;
                 case 'd':
                 {
@@ -95,7 +95,7 @@ int Kprintf(const char* fmt, va_list args)
     return 0;
 }
 
-#if 1
+#if 0
 void trace(const char* fmt, ...)
 {
     va_list args;

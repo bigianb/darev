@@ -1,0 +1,5 @@
+[binaries]
+c = 'mips64r5900el-ps2-elf-gcc'
+cpp = 'mips64r5900el-ps2-elf-g++'
+ar = 'mips64r5900el-ps2-elf-ar'
+strip = 'mips64r5900el-ps2-elf-strip'

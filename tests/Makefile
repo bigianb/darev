@@ -1,19 +1,20 @@
 
 # ------------
 
-DEBUG ?= 0
+DEBUG ?= 1
 
-BASENAME = BGDA_123
+BASENAME = tests_ps2
+EE_BIN = $(BASENAME).elf
+EE_SRC_DIR = ../src/
+EE_SRC_PS2_DIR = ../src/ps2/
+EE_TEST_DIR = ./
 
-# OPL needs this to look like a sony binary
-EE_BIN = fs/$(BASENAME).00
-EE_SRC_DIR = src/
-EE_SRC_PS2_DIR = src/ps2/
 
 EE_OBJS_DIR = obj/
 EE_OBJS_PS2_DIR = obj/ps2/
+EE_OBJS_TEST_DIR = obj/
 
-MAPFILE = fs/$(BASENAME).MAP
+MAPFILE = $(EE_OBJS_DIR)/$(BASENAME).MAP
 EE_LDFLAGS += -Wl,-Map,$(MAPFILE)
 
 EE_LIBS = -lpad -lgs -ldma -lc
@@ -25,33 +26,27 @@ else
 endif
 
 MAIN_OBJS = 
-PS2_OBJS = display dlist draw elfData filesys font frameFunctions lump main menu pad scene showLanguageMenu state text trace
+PS2_OBJS = dlist state trace
+TEST_OBJS = runtests dlist_test
 
 MAIN_OBJS := $(MAIN_OBJS:%=$(EE_OBJS_DIR)%.o)
 PS2_OBJS := $(PS2_OBJS:%=$(EE_OBJS_PS2_DIR)%.o)
+TEST_OBJS := $(TEST_OBJS:%=$(EE_OBJS_TEST_DIR)%.o)
 
 # Generate .d files to track header file dependencies of each object file
-EE_CFLAGS += -MMD -MP -Isrc -Isrc/ps2/hw
-EE_OBJS += $(MAIN_OBJS) $(PS2_OBJS)
+EE_CFLAGS += -MMD -MP -Ihost_mocks -I../src -I../src/ps2/hw
+EE_OBJS += $(TEST_OBJS) $(MAIN_OBJS) $(PS2_OBJS)
 EE_DEPS = $($(filter %.o,$(EE_OBJS)):%.o=%.d)
 
-.PHONY: all release debug rebuild iso elf
+.PHONY: all
 
-all: $(EE_BIN) iso
-
-elf: $(EE_BIN)
-
-debug:
-	$(MAKE) DEBUG=1 all
+all: $(EE_BIN)
 
 clean:
 	echo "Cleaning..."
 	rm -fr $(MAPFILE) $(EE_BIN) $(EE_OBJS_DIR) $(BASENAME).ISO
 
 rebuild: clean all
-
-iso: $(BIN_TARGET)
-	mkisofs -o $(BASENAME).ISO ./fs
 
 $(EE_OBJS_DIR):
 	@mkdir -p $(EE_OBJS_PS2_DIR)
@@ -60,6 +55,9 @@ $(EE_OBJS_DIR)%.o: $(EE_SRC_DIR)%.cpp | $(EE_OBJS_DIR)
 	$(EE_CXX) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
 
 $(EE_OBJS_PS2_DIR)%.o: $(EE_SRC_PS2_DIR)%.cpp | $(EE_OBJS_DIR)
+	$(EE_CXX) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
+
+$(EE_OBJS_DIR)%.o: $(EE_TEST_DIR)%.cpp | $(EE_OBJS_DIR)
 	$(EE_CXX) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
 
 

@@ -1,8 +1,6 @@
 #pragma once
 #include "tamtypes.h"
 
-#define NULL nullptr
-
 #define UNCACHED_SEG(x) (void *)(x)
 #define UCAB_SEG(x) (void *)(x)
 

@@ -146,7 +146,7 @@ bool test_DmaHandler()
 
     frameCount = 1;
 
-	u64 dmaBuffer[2];
+	u64 dmaBuffer[200];
     TexData* tex1 = generateTexture(0x180, 0x80, 0xAF, 0x08CD, 0x14);
 
     DlistNode* node = queueDMA(dmaBuffer, 5, &tex1->header, nullptr, false);
