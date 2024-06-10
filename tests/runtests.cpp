@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
     bool okay = true;
 
 	okay &= runDlistTests();
-	
+	okay &= runGSAllocTests();
     if (okay){
         printf("All good\n");
     } else {

@@ -5,6 +5,7 @@
 #include <cstddef>
 
 extern bool runDlistTests();
+extern bool runGSAllocTests();
 
 #define RUNTEST(name) printf("running "#name"\t"); if (test_##name()) {printf("\tOK\n"); } else {printf("\tFAIL\n"); okay=false;}
 

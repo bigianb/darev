@@ -26,8 +26,8 @@ else
 endif
 
 MAIN_OBJS = 
-PS2_OBJS = dlist state trace
-TEST_OBJS = runtests dlist_test
+PS2_OBJS = dlist gsAllocator state trace
+TEST_OBJS = runtests dlist_test gsalloc_test
 
 MAIN_OBJS := $(MAIN_OBJS:%=$(EE_OBJS_DIR)%.o)
 PS2_OBJS := $(PS2_OBJS:%=$(EE_OBJS_PS2_DIR)%.o)

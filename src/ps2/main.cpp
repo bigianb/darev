@@ -4,6 +4,7 @@
 
 #include "trace.h"
 #include "dlist.h"
+#include "gsAllocator.h"
 #include "display.h"
 #include "elfData.h"
 #include "filesys.h"

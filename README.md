@@ -22,10 +22,10 @@ You'll need the PS2 PAL version of Baldurs Gate Dark Alliance (BGDA). The US ver
 You need to copy the files from the CD into the fs directory.
 Right now you only need:
 
-BG/DATA/FX.LMP
-BG/DATA/HUD.LMP
-BG/DATA/LANGMENU.LMP
-SLES_506.72
+    BG/DATA/FX.LMP
+    BG/DATA/HUD.LMP
+    BG/DATA/LANGMENU.LMP
+    SLES_506.72
 
 once that's done, running make should build you an ISO that can be run on an emulator or read hardware via OPL.
 

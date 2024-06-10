@@ -18,4 +18,9 @@ docker run --volume=/Users/ian/dev:/home/src --workdir=/home/src --restart=no -i
 
 ## Cross compiling for PS2
 
+To compile and run on the PS2, use the makefile.
+
+Ideally you could use the following, but I've not got it working yet.
+```
 meson setup --cross-file ps2_cross.txt buildps2 
+```

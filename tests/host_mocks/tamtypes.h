@@ -7,7 +7,7 @@
 #else
 #include <cstdint>
 
-#define NULL nullptr
+//#define NULL nullptr
 
 typedef uint8_t u8;
 typedef uint16_t u16;

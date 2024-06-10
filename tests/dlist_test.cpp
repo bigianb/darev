@@ -1,6 +1,7 @@
 #include "runtests.h"
 
 #include "../src/ps2/dlist.h"
+#include "../src/ps2/gsAllocator.h"
 #include "../src/ps2/state.h"
 #include "../src/ps2/texture.h"
 

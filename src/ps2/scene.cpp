@@ -9,6 +9,7 @@
 #include "display.h"
 #include "filesys.h"
 #include "dlist.h"
+#include "gsAllocator.h"
 #include "draw.h"
 
 void runScene(sceneHandler sceneFunc)
