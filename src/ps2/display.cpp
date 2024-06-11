@@ -61,7 +61,7 @@ volatile bool isOddField;
 volatile bool isEvenField;
 volatile int vblCount = 0;
 
-int isInterlaced;
+int isInterlaced = 1;
 s32 vblankSema;
 
 #define GS_CSR_NFIELD 0x00001000

@@ -139,6 +139,8 @@ void drawMenu(int xpos, int ypos, MenuDef* menuDefs, u32 color, u32 colorSel, Fo
         }
         u32 rgba = brightness | 0x80000000 | brightness << 0x10 | brightness << 8;
         drawSprite(tex, 0x140 - (((width >> 0x10) - (width >> 0x1f)) >> 1), local_b4 + local_ac, 7, 0, rgba);
+
+        // shadow
         drawSprite(tex, 0x144 - (((width >> 0x10) - (width >> 0x1f)) >> 1), (ypos - (local_bc + -4)) + local_b8 + local_ac, 7, 0, 0x3f000000);
     }
 }

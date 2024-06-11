@@ -19,9 +19,10 @@ EE_LDFLAGS += -Wl,-Map,$(MAPFILE)
 EE_LIBS = -lpad -lgs -ldma -lc
 
 ifeq ($(DEBUG),1)
+  EE_OPTFLAGS = -O0
   EE_CFLAGS += -D__DEBUG -g
 else
-  EE_CFLAGS += -O2
+  EE_OPTFLAGS = -O2
 endif
 
 MAIN_OBJS = 
@@ -70,9 +71,7 @@ ps2sdk-not-setup:
 	@echo "PS2SDK is not setup. Please setup PS2SDK before building this project"
 endif
 
-ifdef PS2SDK
-include $(PS2SDK)/samples/Makefile.pref
-include $(PS2SDK)/samples/Makefile.eeglobal_cpp
-endif
+include make/Makefile.pref
+include make/Makefile.eeglobal_cpp
 
 -include $(EE_DEPS)

@@ -15,7 +15,7 @@
 void runScene(sceneHandler sceneFunc)
 {
     int done = 0;
-    int displayEnableCountdown = 2;
+    int displayEnableCountdown = 2;     //only necessary if non-progressive display mode.
     isInterlaced = 1;
     displayEnvironment.dispfb &= 0xfffffe00;
 
@@ -52,15 +52,7 @@ void runScene(sceneHandler sceneFunc)
             WaitSema(vblankSema);
         }
 
-        for (int i=0; i<10; ++i){
-            vblankSetsMeToFF = 0;
-            while (vblankSetsMeToFF != 0xff) {
-                WaitSema(vblankSema);
-            }
-        }
-
         if (displayEnableCountdown < 1) {    
-            // Enable read circuit 2, disable read circuit 1
             enableDisplay();
         } else {
             disableDisplay();

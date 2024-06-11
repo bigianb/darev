@@ -69,6 +69,7 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
         curDMABufTail[0x18] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
         curDMABufTail[0x19] = 5;        // XYZ2
     } else if (dp->omode == GS_MODE_DTV_480P) {
+
         int primX = xpos * 0x10 + 0x5800;
         int primY = ypos * 0x10 + 0x7000;
         curDMABufTail[0x12] = 0x80008;
