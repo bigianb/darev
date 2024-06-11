@@ -21,6 +21,12 @@
 #include "state.h"
 #include "texture.h"
 
+#if 1
+#define DLIST_TRACELN( format, ... )
+#else
+#define DLIST_TRACELN traceln
+#endif
+
 int dmaSemaId;
 int vif0HandlerId;
 int vif1HandlerId;
@@ -83,7 +89,7 @@ u32 flushAndFinishDma[12] __attribute__((aligned(16))) = {
 
 void flushAndFinish()
 {
-    traceln("flushAndFinish, taddr=0x%x", &flushAndFinishDma[0]);
+    DLIST_TRACELN("flushAndFinish, taddr=0x%x", &flushAndFinishDma[0]);
     setVif1_tadr(&flushAndFinishDma[0]);
 
     currentActiveChannels |= VIF1_ACTIVE;
@@ -96,16 +102,16 @@ int texId_0_or_1 = 0;
 
 int dmaHandler(int channel)
 {
-    traceln("dmaHandler(%d), currentActiveChannels = 0x%x", channel, currentActiveChannels);
+    DLIST_TRACELN("dmaHandler(%d), currentActiveChannels = 0x%x", channel, currentActiveChannels);
 
     if ((dmaInProgress == 0) && (channel != START_CHANNEL)) {
-        traceln("dmaHandler - ignore as idle");
+        DLIST_TRACELN("dmaHandler - ignore as idle");
         // idle and this is not an instruction to start
         return 1;
     }
 
     if (channel == START_CHANNEL) {
-        traceln("dmaHandler - start");
+        DLIST_TRACELN("dmaHandler - start");
         // kickoff new transfer
         curDmaSlot = 0;
 
@@ -124,7 +130,7 @@ int dmaHandler(int channel)
     }
 
     if (channel == GS_FINISH_CHANNEL) {
-        traceln("dmaHandler - GS Finish");
+        DLIST_TRACELN("dmaHandler - GS Finish");
         if ((zeroOrTwo & 2) == 0) {
             uncommitTex(0);
             uncommitTex(1);
@@ -135,7 +141,7 @@ int dmaHandler(int channel)
         GS_SET_CSR_finish_evnt(1);
     }
 
-    //traceln("a. zeroOrTwo = %d", zeroOrTwo);
+    //DLIST_TRACELN("a. zeroOrTwo = %d", zeroOrTwo);
     // doing VIF and we've finished the ones for this texture
     if ((zeroOrTwo == VIF1_ACTIVE) && (GSFinishCounter == nullNodeCounter)) {
         while (zeroOrTwo == VIF1_ACTIVE && curDmaSlot < 8) {
@@ -153,7 +159,7 @@ int dmaHandler(int channel)
         };
     }
 
-    //traceln("b. zeroOrTwo = %d", zeroOrTwo);
+    //DLIST_TRACELN("b. zeroOrTwo = %d", zeroOrTwo);
 
     // mark the channel that triggered this interrupt inactive.
     currentActiveChannels &= ~(1 << (channel & 0x1f));
@@ -163,14 +169,14 @@ int dmaHandler(int channel)
     }
 
     if (waitingOnGSFinish != 0) {
-        //traceln("exit 1 as waitingOnGSFinish");
+        //DLIST_TRACELN("exit 1 as waitingOnGSFinish");
         ExitHandler();
         return 1;
     }
 
     // If GIF is inactive, think about starting a GIF transfer.
     if ((currentActiveChannels & GIF_ACTIVE) == 0) {
-        //traceln("consider GIF transfer");
+        //DLIST_TRACELN("consider GIF transfer");
         for (int i = 2; i < 5; ++i) {
             // de-register textures 2, 3 and 4
             uncommitTex(i);
@@ -181,22 +187,22 @@ int dmaHandler(int channel)
         DlistNode* pNode = curDmaNode;
         while (pNode != nullptr && texId >= 0) {
             TextureHeader* pTexData = pNode->texData;
-            //traceln("pTexData = 0x%x", pTexData);
-            //traceln("curDmaSlot = 0x%x", curDmaSlot);
+            //DLIST_TRACELN("pTexData = 0x%x", pTexData);
+            //DLIST_TRACELN("curDmaSlot = 0x%x", curDmaSlot);
             if (pTexData != nullptr) {
-                traceln("pTexData->gsAllocInfo = 0x%x", pTexData->gsAllocInfo);
+                DLIST_TRACELN("pTexData->gsAllocInfo = 0x%x", pTexData->gsAllocInfo);
                 if (pTexData->gsAllocInfo == nullptr) {
                     gsAllocateTex(pTexData);
                     if (pTexData->gsAllocInfo == nullptr) {
-                        traceln("GS Allocation failed");
+                        DLIST_TRACELN("GS Allocation failed");
                         if ((texId == 2) && ((currentActiveChannels & VIF1_ACTIVE) == 0)) {
                             waitingOnGSFinish = 1;
                             flushAndFinish();
                         }
                     } else {
-                        traceln("allocted dbp = 0x%x, size=0x%x", pTexData->gsAllocInfo->dbp, pTexData->gsAllocInfo->size);
-                        traceln("frameCount = %d, pGSInfo->frameCountPlusOne=%d", frameCount, pTexData->gsAllocInfo->frameCountPlusOne);
-                        traceln("pGSInfo->commitCount = %p", pTexData->gsAllocInfo->commitCount);
+                        DLIST_TRACELN("allocted dbp = 0x%x, size=0x%x", pTexData->gsAllocInfo->dbp, pTexData->gsAllocInfo->size);
+                        DLIST_TRACELN("frameCount = %d, pGSInfo->frameCountPlusOne=%d", frameCount, pTexData->gsAllocInfo->frameCountPlusOne);
+                        DLIST_TRACELN("pGSInfo->commitCount = %p", pTexData->gsAllocInfo->commitCount);
 
                         textureBeingTransferred = pTexData;
                         commitTex(texId + 2, pTexData);
@@ -206,7 +212,7 @@ int dmaHandler(int channel)
 
                             u8* pGifUcab = (u8*)UNCACHED_SEG(pTexData->gif_madr_val);
 
-                            //traceln("Transfer dbp=0x%x, madr ucab = %p", dbp, pGifUcab);
+                            //DLIST_TRACELN("Transfer dbp=0x%x, madr ucab = %p", dbp, pGifUcab);
 
                             // write DBP in first GIFTAG
                             *(u16*)(pGifUcab + 0x14) = dbp;
@@ -239,7 +245,7 @@ int dmaHandler(int channel)
                     texId = -1; // done
                 } else {
                     // register texture
-                    traceln("already allocated, just flag as used");
+                    DLIST_TRACELN("already allocated, just flag as used");
                     commitTex(texId + 2, pTexData);
                 }
             }
@@ -250,10 +256,10 @@ int dmaHandler(int channel)
 
     // if VIF1 is inactive, think about starting a VIF1 transfer
     if (((zeroOrTwo | currentActiveChannels) & VIF1_ACTIVE) == 0) {
-        traceln("consider VIF transfer");
-        traceln("  zeroOrTwo = 0x%x", zeroOrTwo);
-        traceln("  currentActiveChannels = 0x%x", currentActiveChannels);
-        traceln("  curDmaNode = %p", curDmaNode);
+        DLIST_TRACELN("consider VIF transfer");
+        DLIST_TRACELN("  zeroOrTwo = 0x%x", zeroOrTwo);
+        DLIST_TRACELN("  currentActiveChannels = 0x%x", currentActiveChannels);
+        DLIST_TRACELN("  curDmaNode = %p", curDmaNode);
 
         // VIF1 inactive
         if (curDmaNode == nullptr) {
@@ -271,19 +277,21 @@ int dmaHandler(int channel)
                 if (pTexData->gsAllocInfo == nullptr || pTexData == textureBeingTransferred) {
                     // Can't start the VIF transfer if we're waiting for the texture to be transferred or if there
                     // is no space yet to hold the texture
-                    traceln("Transferring Tex, hold off on VIF");
+                    DLIST_TRACELN("Transferring Tex, hold off on VIF");
                     doVif = false;
                 } else {
-                    traceln("Do VIF transfer");
+                    DLIST_TRACELN("Do VIF transfer");
                     // 0 or 1
                     commitTex(texId_0_or_1, pTexData);
 
                     u8* vifAddr = (u8*)UNCACHED_SEG(curDmaNode->pCleanDmaData); // VIF dma data
                     u64 tex0_1_val;
-                    u16 dbp = pTexData->gsAllocInfo->dbp;
+                    const u16 dbp = pTexData->gsAllocInfo->dbp;
+                    u64 tbw = pTexData->tbw;
+
                     if ((curDmaNode->flags & 0x14) == 0) {
-                        // set cbp and tbw
-                        u64 uVar7 = (u64)dbp << 0x25 | (u64)pTexData->tbw << 0xe;
+                        // 8 bit palettised
+                        u64 uVar7 = (u64)dbp << 0x25 | tbw << 0xe;
                         // set tbp0
                         tex0_1_val = (u64)(dbp + 4) | 0x4000000000000000;
                         tex0_1_val |= uVar7;
@@ -293,12 +301,12 @@ int dmaHandler(int channel)
                             // TEX1_1
                             *(short*)(vifAddr + 0x40) = (short)iVar9;
                             u64 uVar7 = iVar9 << 5;
-                            tex0_1_val = (u64)pTexData->tbw << 0xe;
+                            tex0_1_val = tbw << 0xe;
                             tex0_1_val |= uVar7;
                         } else {
                             // TEX1_1
                             *(u64*)(vifAddr + 0x40) |= (u64)dbp << 0x20;
-                            tex0_1_val = dbp | (u64)pTexData->tbw << 0xe;
+                            tex0_1_val = dbp | tbw << 0xe;
                         }
                     }
 
@@ -309,7 +317,7 @@ int dmaHandler(int channel)
                 }
             }
             if (doVif) {
-                traceln("setting vif tadr to 0x%x", curDmaNode->pCleanDmaData);
+                DLIST_TRACELN("setting vif tadr to 0x%x", curDmaNode->pCleanDmaData);
                 setVif1_tadr(curDmaNode->pCleanDmaData);
 
                 curDmaNode = curDmaNode->next;
@@ -325,24 +333,24 @@ int dmaHandler(int channel)
         /* done all slots, no channels active and DMA not yet signalled. */
         dmaSemaSignalled = 1;
         dmaInProgress = 0;
-        //traceln("signal DMA sema id=%d", dmaSemaId);
+        //DLIST_TRACELN("signal DMA sema id=%d", dmaSemaId);
         iSignalSema(dmaSemaId);
     }
 
-    //traceln("handler done");
+    //DLIST_TRACELN("handler done");
     ExitHandler();
     return 1;
 }
 
 void waitDMASema()
 {
-    //traceln("wait DMA sema id=%d", dmaSemaId);
+    //DLIST_TRACELN("wait DMA sema id=%d", dmaSemaId);
     WaitSema(dmaSemaId);
 }
 
 int GsIntcHandler(int cause)
 {
-    //traceln("GsIntcHandler(%x)", cause);
+    //DLIST_TRACELN("GsIntcHandler(%x)", cause);
     dmaHandler(GS_FINISH_CHANNEL);
     ExitHandler();
     return 1;
@@ -372,7 +380,7 @@ void kickoffDMA()
     DI();
     dmaHandler(START_CHANNEL);
     EI();
-    //traceln("kickoff done");
+    //DLIST_TRACELN("kickoff done");
 }
 
 void initDMA()
@@ -476,7 +484,7 @@ DlistNode* queueDMA(u64* dma_buffer, int slot, TextureHeader* pTexData, DlistNod
 
 void logPathNonTerminating(const char* msg)
 {
-    traceln(msg);
+    DLIST_TRACELN(msg);
     trace("<D1_CHCR=%x:", RD_EE_D1_CHCR());
     trace("D1_TADR=%x:", RD_EE_D1_TADR());
     trace("D1_MADR=%x:", RD_EE_D1_MADR());
@@ -533,7 +541,7 @@ int sceGsSyncPath(int mode, unsigned short timeout)
                 return -1;
             }
         }
-        //traceln("gsSyncPath done");
+        //DLIST_TRACELN("gsSyncPath done");
         return 0;
     } else {
         // non-blocking mode

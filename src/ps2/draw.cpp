@@ -7,11 +7,14 @@ u64 dmaBuffers[2][20000] __attribute__((aligned(16)));
 u64* curDMABufHead = nullptr;
 u64* curDMABufTail = nullptr;
 
-inline u64* addAlign16(u64* in, int n)
+inline u64* paddAlign16(u64* in, int n)
 {
     u64* out = in + n;
-    if (((u32)out & 0x0f) != 0) ++out;
-    return out;
+
+    u8* oAddr = (u8*)out;
+
+    while (((u32)oAddr & 0x0f) != 0) *oAddr++ = 0;
+    return (u64*)oAddr;
 }
 
 void drawOpaqueSprite(TextureHeader* pTex, int xpos, int ypos, int slot, bool append)
@@ -23,8 +26,8 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
 {
     const GsGParam_t* dp = GsGetGParam();
 
-    // FLUSH followed by DIRECT, 12 qwords
-    curDMABufTail[1] = 0x5000000c11000000ULL;  
+    // FLUSH followed by DIRECT, num qwords filled in later
+    curDMABufTail[1] = 0x5000000011000000ULL;  
 
     // GIF tag, EOP, PACKED mode, 1 reg A+D, nloop is written later
     curDMABufTail[2] = 0x1000000000008000ULL;   
@@ -51,41 +54,76 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
     curDMABufTail[0x10] = 0x3001d;
     curDMABufTail[0x11] = 0x47;     // TEST_1
     
+    int idx = 0x12;
+
     if (isInterlaced == 0) {
         int primX = xpos * 0x10 + 0x7000;
         int primY = ypos * 0x10 + 0x6c00;
-        curDMABufTail[0x12] = 0x80008;
-        curDMABufTail[0x13] = 3;        // UV
+        curDMABufTail[idx++] = 0x80008;
+        curDMABufTail[idx++] = 3;        // UV
 
-        curDMABufTail[0x14] = 0xa00000000 | (primY << 0x10) | primX;
-        curDMABufTail[0x15] = 5;        // XYZ2
+        curDMABufTail[idx++] = 0xa00000000 | (primY << 0x10) | primX;
+        curDMABufTail[idx++] = 5;        // XYZ2
         
         int primH = pTexData->height * 0x10;
         int primW = pTexData->width * 0x10;
 
-        curDMABufTail[0x16] = ((primH + 8) << 0x10) | (primW + 8);
-        curDMABufTail[0x17] = 3;        // UV
+        curDMABufTail[idx++] = ((primH + 8) << 0x10) | (primW + 8);
+        curDMABufTail[idx++] = 3;        // UV
 
-        curDMABufTail[0x18] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
-        curDMABufTail[0x19] = 5;        // XYZ2
+        curDMABufTail[idx++] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
+        curDMABufTail[idx++] = 5;        // XYZ2
     } else if (dp->omode == GS_MODE_DTV_480P) {
 
-        int primX = xpos * 0x10 + 0x5800;
-        int primY = ypos * 0x10 + 0x7000;
-        curDMABufTail[0x12] = 0x80008;
-        curDMABufTail[0x13] = 3;        // UV
+        bool interlacedTexture = true;
+        if (interlacedTexture){
+            // FBP = 0xA0 = 0x140000 byte address
+            // FBW = 0xB = 1280 pixels
+            curDMABufTail[idx++] = 0x00B00A0;
+            curDMABufTail[idx++] = GSReg::FRAME_1;
 
-        curDMABufTail[0x14] = 0xa00000000 | (primY << 0x10) | primX;
-        curDMABufTail[0x15] = 5;        // XYZ2
-        
-        int primH = pTexData->height * 0x10;
-        int primW = pTexData->width * 0x10;
+            int primX = xpos * 0x10 + 0x5800;
+            int primY = ypos * 0x8 + 0x7000;
+            curDMABufTail[idx++] = 0x80008;
+            curDMABufTail[idx++] = 3;        // UV
 
-        curDMABufTail[0x16] = ((primH + 8) << 0x10) | (primW + 8);
-        curDMABufTail[0x17] = 3;        // UV
+            curDMABufTail[idx++] = 0xa00000000 | (primY << 0x10) | primX;
+            curDMABufTail[idx++] = 5;        // XYZ2
+            
+            int primH = pTexData->height * 0x8;
+            int primW = pTexData->width * 0x10;
 
-        curDMABufTail[0x18] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
-        curDMABufTail[0x19] = 5;        // XYZ2
+            curDMABufTail[idx++] = ((primH + 8) << 0x10) | (primW + 8);
+            curDMABufTail[idx++] = 3;        // UV
+
+            curDMABufTail[idx++] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
+            curDMABufTail[idx++] = 5;        // XYZ2
+
+            // FBP = 0xA0 = 0x140000 byte address
+            // FBW = 0xA = 640 pixels
+            curDMABufTail[idx++] = 0x00A00A0;
+            curDMABufTail[idx++] = GSReg::FRAME_1;
+
+        } else {
+            // This is the sensible option - the texure has been de-interlaced ahead of time.
+            // TODO: not yet implemented.
+            int primX = xpos * 0x10 + 0x5800;
+            int primY = ypos * 0x10 + 0x7000;
+            curDMABufTail[idx++] = 0x80008;
+            curDMABufTail[idx++] = 3;        // UV
+
+            curDMABufTail[idx++] = 0xa00000000 | (primY << 0x10) | primX;
+            curDMABufTail[idx++] = 5;        // XYZ2
+            
+            int primH = pTexData->height * 0x10;
+            int primW = pTexData->width * 0x10;
+
+            curDMABufTail[idx++] = ((primH + 8) << 0x10) | (primW + 8);
+            curDMABufTail[idx++] = 3;        // UV
+
+            curDMABufTail[idx++] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
+            curDMABufTail[idx++] = 5;        // XYZ2
+        }
     } else {
         int primX = xpos * 0x20 + 0x5800;
         int primY = ypos * 0x10 + 0x7000;
@@ -105,22 +143,22 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
                 v0 = (pTexData->height / 2) * 0x10;
             }
         }
-        curDMABufTail[0x12] = ((v0 + 4) << 0x10) | 4;
-        curDMABufTail[0x13] = 3;    // UV
+        curDMABufTail[idx++] = ((v0 + 4) << 0x10) | 4;
+        curDMABufTail[idx++] = 3;    // UV
 
-        curDMABufTail[0x14] = 0xa00000000 | (primY << 16) | primX;
-        curDMABufTail[0x15] = 5;
+        curDMABufTail[idx++] = 0xa00000000 | (primY << 16) | primX;
+        curDMABufTail[idx++] = 5;
 
-        curDMABufTail[0x16] = ((pTexData->height * 8 + v0 + 4) << 0x10) | (pTexData->width * 0x10 + 4);
-        curDMABufTail[0x17] = 3;
+        curDMABufTail[idx++] = ((pTexData->height * 8 + v0 + 4) << 0x10) | (pTexData->width * 0x10 + 4);
+        curDMABufTail[idx++] = 3;
         
         int primX1 = primX + pTexData->width * 0x20;
         int primY1 = primY + pTexData->height * 0x10;
-        curDMABufTail[0x18] = 0xa00000000 | (primY1 << 16) | primX1;
-        curDMABufTail[0x19] = 5;
+        curDMABufTail[idx++] = 0xa00000000 | (primY1 << 16) | primX1;
+        curDMABufTail[idx++] = 5;
     }
 
-    const int entriesUsed = 0x1A;
+    const int entriesUsed = idx;
 
     // Fill in the DMA tag
 
@@ -132,8 +170,11 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
     u64 nloop = (entriesUsed - 4) / 2;
     curDMABufTail[2] |= nloop;
 
+    // fill in the DIRECT command
+    curDMABufTail[1] |= ((nloop+1) << 0x20);
+
     u64 *dma_buffer = curDMABufTail;
-    curDMABufTail = addAlign16(curDMABufTail, entriesUsed);
+    curDMABufTail = paddAlign16(curDMABufTail, entriesUsed);
     queueDMA(dma_buffer, slot, pTexData, nullptr, !append);
     return;
 }

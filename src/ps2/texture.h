@@ -19,3 +19,5 @@ struct TextureHeader
     int resetFrameNo;
     DlistNode * slotNodes[8];
 };
+
+void deinterlace(TextureHeader* texData);

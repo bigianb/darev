@@ -28,7 +28,8 @@ endif
 MAIN_OBJS = 
 PS2_OBJS =	display dlist draw elfData filesys font frameFunctions \
 			gsAllocator \
-			lump main menu pad scene showLanguageMenu state text trace
+			lump main menu pad scene showLanguageMenu state \
+			text texture trace
 
 MAIN_OBJS := $(MAIN_OBJS:%=$(EE_OBJS_DIR)%.o)
 PS2_OBJS := $(PS2_OBJS:%=$(EE_OBJS_PS2_DIR)%.o)

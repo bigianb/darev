@@ -108,6 +108,8 @@ void* offsetToPtr(void* offset, void* base)
     return (void*)((u32)offset + (u32)base);
 }
 
+
+
 void fixupTex(TextureHeader* texData)
 {
     if (texData->resetFrameNo == 0) {
@@ -146,6 +148,8 @@ void fixupTex(TextureHeader* texData)
             }
             texData->qwc = uVar7;
             */
+        } else {
+            deinterlace(texData);
         }
     }
     return;
