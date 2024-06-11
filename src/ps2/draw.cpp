@@ -75,55 +75,23 @@ void drawSprite(TextureHeader* pTexData, int xpos, int ypos, int slot, bool appe
         curDMABufTail[idx++] = 5;        // XYZ2
     } else if (dp->omode == GS_MODE_DTV_480P) {
 
-        bool interlacedTexture = true;
-        if (interlacedTexture){
-            // FBP = 0xA0 = 0x140000 byte address
-            // FBW = 0xB = 1280 pixels
-            curDMABufTail[idx++] = 0x00B00A0;
-            curDMABufTail[idx++] = GSReg::FRAME_1;
+        int primX = xpos * 0x10 + 0x5800;
+        int primY = ypos * 0x10 + 0x7000;
+        curDMABufTail[idx++] = 0x80008;
+        curDMABufTail[idx++] = 3;        // UV
 
-            int primX = xpos * 0x10 + 0x5800;
-            int primY = ypos * 0x8 + 0x7000;
-            curDMABufTail[idx++] = 0x80008;
-            curDMABufTail[idx++] = 3;        // UV
+        curDMABufTail[idx++] = 0xa00000000 | (primY << 0x10) | primX;
+        curDMABufTail[idx++] = 5;        // XYZ2
+        
+        int primH = pTexData->height * 0x10;
+        int primW = pTexData->width * 0x10;
 
-            curDMABufTail[idx++] = 0xa00000000 | (primY << 0x10) | primX;
-            curDMABufTail[idx++] = 5;        // XYZ2
-            
-            int primH = pTexData->height * 0x8;
-            int primW = pTexData->width * 0x10;
+        curDMABufTail[idx++] = ((primH + 8) << 0x10) | (primW + 8);
+        curDMABufTail[idx++] = 3;        // UV
 
-            curDMABufTail[idx++] = ((primH + 8) << 0x10) | (primW + 8);
-            curDMABufTail[idx++] = 3;        // UV
-
-            curDMABufTail[idx++] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
-            curDMABufTail[idx++] = 5;        // XYZ2
-
-            // FBP = 0xA0 = 0x140000 byte address
-            // FBW = 0xA = 640 pixels
-            curDMABufTail[idx++] = 0x00A00A0;
-            curDMABufTail[idx++] = GSReg::FRAME_1;
-
-        } else {
-            // This is the sensible option - the texure has been de-interlaced ahead of time.
-            // TODO: not yet implemented.
-            int primX = xpos * 0x10 + 0x5800;
-            int primY = ypos * 0x10 + 0x7000;
-            curDMABufTail[idx++] = 0x80008;
-            curDMABufTail[idx++] = 3;        // UV
-
-            curDMABufTail[idx++] = 0xa00000000 | (primY << 0x10) | primX;
-            curDMABufTail[idx++] = 5;        // XYZ2
-            
-            int primH = pTexData->height * 0x10;
-            int primW = pTexData->width * 0x10;
-
-            curDMABufTail[idx++] = ((primH + 8) << 0x10) | (primW + 8);
-            curDMABufTail[idx++] = 3;        // UV
-
-            curDMABufTail[idx++] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
-            curDMABufTail[idx++] = 5;        // XYZ2
-        }
+        curDMABufTail[idx++] = 0xa00000000 | ((primY+primH) << 0x10) | (primX + primW);
+        curDMABufTail[idx++] = 5;        // XYZ2
+        
     } else {
         int primX = xpos * 0x20 + 0x5800;
         int primY = ypos * 0x10 + 0x7000;
