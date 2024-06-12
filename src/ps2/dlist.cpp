@@ -214,13 +214,14 @@ int dmaHandler(int channel)
 
                             //DLIST_TRACELN("Transfer dbp=0x%x, madr ucab = %p", dbp, pGifUcab);
 
-                            // write DBP in first GIFTAG
+                            // write DBP in first GIFTAG (palette)
                             *(u16*)(pGifUcab + 0x14) = dbp;
                             if ((pTexData->flags & 4) == 0) {
                                 if ((pTexData->flags & 0x2000) != 0) {
                                     *(u16*)(pGifUcab + 0xb4) = dbp + 4;
                                 }
                             } else {
+                                // 8 bit palette, write image pointer
                                 *(u16*)(pGifUcab + 0x474) = dbp + 4;
                             }
 

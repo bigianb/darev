@@ -7,12 +7,27 @@
 #include <iostream>
 
 
+TexDecoder::TexDecoder()
+{
+    pixels = nullptr;
+    pixelsLength = 0;
+}
+
+TexDecoder::~TexDecoder()
+{
+    // shouldn't ever really happen
+    if (pixels){
+        delete[] pixels;
+    }
+}
+
 Texture* TexDecoder::decode(TextureHeader* header)
 {
 	int sourcew = header->width;
 	int sourceh = header->height;
 	pixels = nullptr;
 	pixelsLength = 0;
+    Palette* palette = nullptr;
 
     const unsigned char* pGifData = (unsigned char*)header->gif_madr_val;
 
@@ -31,7 +46,7 @@ Texture* TexDecoder::decode(TextureHeader* header)
         gifTag2.parse(pGifData);
 
         // 8 bit palletised
-        Palette* palette = new Palette();
+        palette = new Palette();
         palette->read(pGifData + 0x10, palw, palh);
         palette->unswizzle();
 
@@ -76,8 +91,7 @@ Texture* TexDecoder::decode(TextureHeader* header)
         } else {
             sourcew = dbw;
             sourceh = dbh;
-        }
-        delete palette;        
+        }    
 
     } else if (gifTag.nloop == 3) {
         pGifData += 0xC0;
@@ -94,7 +108,8 @@ Texture* TexDecoder::decode(TextureHeader* header)
     } else {
         std::cerr << "unrecognised texture format";
     }
-    Texture* texture = new Texture(header->width, header->height, sourcew, sourceh, pixels, sourcew * sourceh * 4);
+    Texture* texture = new Texture(header->width, header->height, sourcew, sourceh, pixels, sourcew * sourceh * 4, palette);
+    pixels = nullptr;   // Texture owns it now.
     return texture;
 }
 

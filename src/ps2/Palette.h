@@ -22,9 +22,24 @@ public:
 
     int numEntries;
 
-    int32_t getValue(unsigned int idx)
+    int32_t getValue(unsigned int idx) const
     {
         return ((int32_t*)rgbaData)[idx];
+    }
+
+    int lookup(const uint32_t rgba) const
+    {
+        int idx = 0;
+        if (rgbaData == nullptr){
+            // assert(false)
+            //int x = *(int*)0;
+        } else {
+            const uint32_t *palData = (uint32_t*)rgbaData;
+            while (idx < numEntries && palData[idx] != rgba){
+                ++idx;
+            }
+        }
+        return idx;
     }
 
     void read(const unsigned char* data, int palw, int palh)

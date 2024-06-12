@@ -1,5 +1,6 @@
 #pragma once
 #include <tamtypes.h>
+#include "Palette.h"
 
 struct DlistNode;
 struct GSAllocInfo;
@@ -25,7 +26,7 @@ void deinterlace(TextureHeader* texData);
 class Texture
 {
 public:
-    Texture(int logw, int logh, int w, int h, unsigned char* dataIn, int dataLengthIn)
+    Texture(int logw, int logh, int w, int h, unsigned char* dataIn, int dataLengthIn, Palette* paletteIn)
     {
 		logicalWidth = logw;
 		logicalHeight = logh;
@@ -33,11 +34,14 @@ public:
         heightPixels = h;
         dataLength = dataLengthIn;
         data = dataIn;
+        palette = paletteIn;
+
     }
 
     ~Texture()
     {
-        delete data;
+        delete[] data;
+        delete palette;
     }
 
 	int logicalWidth;
@@ -48,4 +52,7 @@ public:
 
     int dataLength;
     unsigned char* data;
+    Palette* palette;
 };
+
+void encode(TextureHeader* texHeader, Texture* tex);

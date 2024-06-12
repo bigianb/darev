@@ -6,6 +6,8 @@ class Palette;
 class TexDecoder
 {
 public:
+    TexDecoder();
+    ~TexDecoder();
 	Texture* decode(TextureHeader* header);
 
     static void deinterlace(Texture* texture);
