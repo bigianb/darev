@@ -65,7 +65,9 @@ void encode(TextureHeader* texHeader, Texture* tex)
         unsigned char* pTrxRegVal = pBitBltBufVal + 0x20;
 
         unsigned short rrw = tex->widthPixels;
-        unsigned short rrh = tex->heightPixels;
+        unsigned short rrh = tex->logicalHeight;
+
+    traceln("dims = (0x%x, 0x%x)", rrw, rrh);
 
         *(unsigned short*)(pTrxRegVal) = rrw;
         *(unsigned short*)(pTrxRegVal+4) = rrh;
