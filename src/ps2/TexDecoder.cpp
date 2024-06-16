@@ -108,7 +108,7 @@ Texture* TexDecoder::decode(TextureHeader* header)
     } else {
         std::cerr << "unrecognised texture format";
     }
-    Texture* texture = new Texture(header->width, header->height, sourcew, sourceh, pixels, sourcew * sourceh * 4, palette);
+    Texture* texture = new Texture(header->width, header->height, sourcew, sourceh, pixels, pixelsLength, palette);
     pixels = nullptr;   // Texture owns it now.
     return texture;
 }
@@ -155,10 +155,15 @@ void TexDecoder::readPixels32(const unsigned char* data, Palette* palette, int s
             for (int x = 0; x < rrw; ++x) {
                 int destIdx = (y+starty) * widthPixels + (x + startx) * 4;
 
+                if (4*(destIdx + 4) >= pixelsLength){
+                    //std::cerr << "bang!";
+                } else {
+
                 pixels32[destIdx++] = palette->getValue(data[idx++]);
                 pixels32[destIdx++] = palette->getValue(data[idx++]);
                 pixels32[destIdx++] = palette->getValue(data[idx++]);
                 pixels32[destIdx] = palette->getValue(data[idx++]);
+                }
             }
         }
 

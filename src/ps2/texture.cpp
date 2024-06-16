@@ -2,19 +2,16 @@
 #include "TexDecoder.h"
 #include "trace.h"
 
+#include <iostream>
+
 void deinterlace(TextureHeader* texHeader)
 {
-    if(texHeader->qwc == 0x2a5 ||       // HUD:menulong.tex
-    texHeader->qwc == 0x5052            // LANGMENU:langmenu.tex
-    ){    // menu long
+    TexDecoder decoder;
+    Texture* tex = decoder.decode(texHeader);
+    TexDecoder::deinterlace(tex);
 
-        TexDecoder decoder;
-        Texture* tex = decoder.decode(texHeader);
-        TexDecoder::deinterlace(tex);
-
-        encode(texHeader, tex);
-        delete tex;
-    }
+    encode(texHeader, tex);
+    delete tex;
 }
 
 // encodes the data in tex to the texHeader, replacing what currently exists there.
@@ -83,8 +80,9 @@ void encode(TextureHeader* texHeader, Texture* tex)
 
         u8* pDest = pImageTag + 0x10;
         u32* pixels32 = (u32*)tex->data;
-        for (int i=0; i<pixLen; ++i){
-            pDest[i] = tex->palette->lookup(pixels32[i]);
+        for (int i=0/*x9e39*/; i<pixLen; ++i){
+            u32 rgba = pixels32[i];
+            pDest[i] = tex->palette->lookup(rgba);
         }
         for (int i=pixLen; i<pixLen + padding; ++i){
             pDest[i] = 0;

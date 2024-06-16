@@ -11,7 +11,7 @@ void waitForFrame();
 struct TextureHeader;
 class Font;
 void fixupTex(TextureHeader* texData);
-void fixupFnt(Font* font);
+void fixupFnt(Font* font, const char* lmpName, const char* entryName);
 
 extern u8 cdStreamingFlag;
 

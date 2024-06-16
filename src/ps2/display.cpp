@@ -7,8 +7,6 @@
 #include "state.h"
 #include "dlist.h"
 
-#define GS_MODE_DTV_576P  0x53
-
 enum DmaChannel
 {
     VIF0 = 0,

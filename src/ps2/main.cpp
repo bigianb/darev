@@ -31,10 +31,12 @@ int main(int argc, char* argv[])
 {
     loadModules();
     
-    readElfData();
-    fixupFnt((Font *)menuFont);
-    
     initGs();
+
+    readElfData();
+    fixupFnt((Font *)menuFont, "elf", "menuFont");
+    
+
     initPads();
     initCD();
     traceln("cd init done");

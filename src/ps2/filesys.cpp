@@ -8,6 +8,7 @@
 #include "trace.h"
 #include "state.h"
 
+#include "display.h"
 #include "filesys.h"
 #include "lump.h"
 #include "texture.h"
@@ -108,9 +109,7 @@ void* offsetToPtr(void* offset, void* base)
     return (void*)((u32)offset + (u32)base);
 }
 
-
-
-void fixupTex(TextureHeader* texData)
+void fixupTex(TextureHeader* texData, const char* lmpName, const char* entryName)
 {
     if (texData->resetFrameNo == 0) {
         texData->resetFrameNo = -1;
@@ -148,24 +147,27 @@ void fixupTex(TextureHeader* texData)
             }
             texData->qwc = uVar7;
             */
-        } else {
-            deinterlace(texData);
+        } else if (isProgressiveModeDisplay()){
+            traceln("lmpName = %s", lmpName);
+            if (0 == strcmp(lmpName, "elf") || 0 == strcmp(lmpName, "langmenu.lmp") || 0 == strcmp(lmpName, "hud.lmp")){
+                deinterlace(texData);
+            }
         }
     }
     return;
 }
 
-void fixupFnt(Font* font)
+void fixupFnt(Font* font, const char* lmpName, const char* entryName)
 {
     font->glyphInfoArray = (GlyphInfo *)offsetToPtr(font->glyphInfoArray, font);
     font->kernArray = (GlyphKernPair*)offsetToPtr(font->kernArray, font);
     font->texture = (TextureHeader*)offsetToPtr(font->texture, font);
 
-    fixupTex(font->texture);
+    fixupTex(font->texture, lmpName, entryName);
     return;
 }
 
-u32 fixupLmpData(u8* lmpFileData)
+u32 fixupLmpData(u8* lmpFileData, char* lmpName)
 {
     // lmp data is aligned to a 256 byte boundary
     LmpDir* lmp = (LmpDir*)(((u32)lmpFileData + 0xff) & 0xffffff00);
@@ -251,9 +253,9 @@ u32 fixupLmpData(u8* lmpFileData)
                     } else if (0 == strcmp(ext, "vif")) {
                         // TODO: fixupVif(pEntry->payload);
                     } else if (0 == strcmp(ext, "tex")) {
-                        fixupTex((TextureHeader*)pEntry->payload);
+                        fixupTex((TextureHeader*)pEntry->payload, lmpName, pEntry->name);
                     } else if (0 == strcmp(ext, "fnt")) {
-                        fixupFnt((Font*)pEntry->payload);
+                        fixupFnt((Font*)pEntry->payload, lmpName, pEntry->name);
                     } else if (0 == strcmp(ext, "world")) {
                         // TODO: fixupWorld(pEntry->payload);
                     } else if (0 == strcmp(ext, "vag")) {
@@ -332,7 +334,7 @@ void dealWithCdStreaming()
     if ((streamLmpBuf != nullptr) && (loadLmpStreamDone != 0)) {
         int vagSpaceBefore = vagSpaceAvailable();
 
-        int bytesRemoved = fixupLmpData(streamLmpBuf);
+        int bytesRemoved = fixupLmpData(streamLmpBuf, streamLmpName);
         int bytesToKeep = streamLmpLen - (bytesRemoved - 0x100);
         trimAllocatedSpace(streamLmpBuf, bytesToKeep);
         loadedLmpInfo[numLoadedLmps].size = bytesToKeep;

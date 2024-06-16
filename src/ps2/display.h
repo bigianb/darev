@@ -48,6 +48,14 @@ inline GsGParam_t* GsGetGParam(void)
     return &gp_15;
 }
 
+#define GS_MODE_DTV_576P  0x53
+
+inline
+bool isProgressiveModeDisplay()
+{
+    return gp_15.omode == GS_MODE_DTV_480P || gp_15.omode == GS_MODE_DTV_576P;
+}
+
 void initGs();
 void setDisplayRegs(GsDispEnv* regs);
 

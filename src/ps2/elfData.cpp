@@ -46,7 +46,9 @@ struct ElfFile
 u8* menuFont = nullptr;
 
 ElfFile elfFiles[] = {
-    {0x0023a970, 0x00245840, (void**)&menuFont}};
+   // {0x0023a970, 0x00245840, (void**)&menuFont}
+    {0x0023a970, 0x00246840, (void**)&menuFont}     // FIXME: too big, figure out real size. Commented line is too small.
+    };
 
 void findFile(ElfFile& ef, ELF_HEADER* elfHeader, ELF_PROGRAM_HDR* ph)
 {

@@ -132,6 +132,8 @@ void flushText()
 
 void displayTextW(int x, int y, u16* text, int maxChars)
 {
+    const GsGParam_t* dp = GsGetGParam();
+
     charsToGlyphs(pTextFont, text);
 
     int xPhys;
@@ -142,6 +144,12 @@ void displayTextW(int x, int y, u16* text, int maxChars)
     if ((y + 100 < 0x385) && (maxChars > 0)) {
         if (isInterlaced == 0) {
             xPhys = x * 0x10 + 0x6c00;
+            yPhys = y * 0x10 + 0x7000;
+            yAdjust = 0;
+            wShift = 4;
+            yShift = 4;
+        } else if (dp->omode == GS_MODE_DTV_480P || dp->omode == GS_MODE_DTV_576P) {
+            xPhys = x * 0x10 + 0x5800;
             yPhys = y * 0x10 + 0x7000;
             yAdjust = 0;
             wShift = 4;
@@ -206,7 +214,7 @@ void displayTextW(int x, int y, u16* text, int maxChars)
                         } while (pTextFont->kernArray[kernId].glyph2 == cleanGlyphId);
                     }
 
-                    if (isInterlaced == 0) {
+                    if (isInterlaced == 0 || dp->omode == GS_MODE_DTV_480P || dp->omode == GS_MODE_DTV_576P) {
                         pTextDma[0] = (iVar17 + 8) * 0x10000 | (physX0 + 8);
                         pTextDma[1] = xPhys | ((yPhys + physGlyphYOffset) * 0x10000);
                         pTextDma[2] = (iVar16 + 8) * 0x10000 | (physX1 + 8);
