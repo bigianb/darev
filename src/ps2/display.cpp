@@ -919,7 +919,7 @@ void startFrameInterlaced()
     /*
         // Sets the colour based on world flags.
 
-        if (DAT_ram_00325c2c == 0) {
+        if (disableBackgroundColourEffects == 0) {
             fVar9 = (Vec3_ram_00233d68.z + 600.0) * 0.001666667;
             if (fVar9 < 0.0) {
                 fVar9 = 0.0;

@@ -67,7 +67,7 @@ u8* getLmp(const char* lmpName)
         loadLmp(lmpName);
         bool loggedWait = false;
         while (cdStreamingFlag != 0) {
-            if (!loggedWait){
+            if (!loggedWait) {
                 loggedWait = true;
                 traceln("waiting");
             }
@@ -81,7 +81,7 @@ u8* getLmp(const char* lmpName)
             }
         }
     }
-    if (pData == nullptr){
+    if (pData == nullptr) {
         traceln("Failed to read %s", lmpName);
     }
     return pData;
@@ -107,7 +107,7 @@ void setLmpGeneration(int gen)
 u8* findLmpEntry(const char* lmpName, const char* entryName)
 {
     u8* unalignedData = getLmp(lmpName);
-    if (unalignedData == nullptr){
+    if (unalignedData == nullptr) {
         return nullptr;
     }
     // LmpDir is aligned to a 256 byte boundary
@@ -121,4 +121,27 @@ u8* findLmpEntry(const char* lmpName, const char* entryName)
         }
     }
     return payload;
+}
+
+LmpDirEntry* searchLmpForNthFileWithExt(u8* lmpDataUnaligned, const char* ext, int n)
+{
+    // LmpDir is aligned to a 256 byte boundary
+    LmpDir* lmpDir = (LmpDir*)((u32)(lmpDataUnaligned + 0xff) & 0xffffff00);
+
+    int numFound = 0;
+    int i = 0;
+    while (i < lmpDir->numEntries && numFound != n) {
+        const char* pDot = strrchr(lmpDir->entries[i].name, '.');
+        if (pDot != nullptr) {
+            if (0 == strcmp(pDot + 1, ext)) {
+                ++numFound;
+            }
+        }
+        ++i;
+    }
+    LmpDirEntry* entry = nullptr;
+    if (numFound == n) {
+        entry = &lmpDir->entries[i - 1];
+    }
+    return entry;
 }

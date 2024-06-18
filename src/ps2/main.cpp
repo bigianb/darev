@@ -2,6 +2,7 @@
 #include <sifrpc.h>
 #include <loadfile.h>
 
+#include "animDebug/animDebug.h"
 #include "trace.h"
 #include "dlist.h"
 #include "gsAllocator.h"
@@ -11,6 +12,7 @@
 #include "lump.h"
 #include "pad.h"
 #include "scene.h"
+#include "state.h"
 #include "showLanguageMenu.h"
 
 static void
@@ -54,6 +56,13 @@ int main(int argc, char* argv[])
 
     runScene(&showLanguageMenu);
 
+    bool showAnimDebug = true;
+    if (showAnimDebug){
+        disableBackgroundColourEffects = 1;
+        curLevelId[0] = 0;
+        AnimDebug::setup(argc, argv);
+        //runLevelLoop();
+    }
     freeElfData();
     traceln("bye");
 

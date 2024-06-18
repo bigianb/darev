@@ -6,3 +6,7 @@ int frameCount = 0;
 int sceneFrameNum = 0;
 
 int selectedLanguageId = 1;
+
+char curLevelId[8] = {0,0,0,0,0,0,0,0};
+
+int disableBackgroundColourEffects = 0;

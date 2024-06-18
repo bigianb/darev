@@ -8,9 +8,11 @@ BASENAME = BGDA_123
 # OPL needs this to look like a sony binary
 EE_BIN = fs/$(BASENAME).00
 EE_SRC_DIR = src/
+EE_SRC_AD_DIR = src/animDebug/
 EE_SRC_PS2_DIR = src/ps2/
 
 EE_OBJS_DIR = obj/
+EE_OBJS_AD_DIR = obj/animDebug/
 EE_OBJS_PS2_DIR = obj/ps2/
 
 MAPFILE = fs/$(BASENAME).MAP
@@ -27,16 +29,18 @@ endif
 
 MAIN_OBJS = 
 PS2_OBJS =	display dlist draw elfData filesys font frameFunctions \
-			GIFTag gsAllocator \
-			lump main menu pad scene showLanguageMenu state \
-			TexDecoder text texture trace
+		GIFTag gsAllocator \
+		lump main menu pad scene showLanguageMenu state \
+		TexDecoder text texture trace
+ANIMDEBUG_OBJS = animDebugSetup
 
 MAIN_OBJS := $(MAIN_OBJS:%=$(EE_OBJS_DIR)%.o)
+ANIMDEBUG_OBJS := $(ANIMDEBUG_OBJS:%=$(EE_OBJS_AD_DIR)%.o)
 PS2_OBJS := $(PS2_OBJS:%=$(EE_OBJS_PS2_DIR)%.o)
 
 # Generate .d files to track header file dependencies of each object file
 EE_CFLAGS += -MMD -MP -Isrc -Isrc/ps2/hw
-EE_OBJS += $(MAIN_OBJS) $(PS2_OBJS)
+EE_OBJS += $(MAIN_OBJS) $(PS2_OBJS) $(ANIMDEBUG_OBJS)
 EE_DEPS = $($(filter %.o,$(EE_OBJS)):%.o=%.d)
 
 .PHONY: all release debug rebuild iso elf
@@ -59,8 +63,12 @@ iso: $(BIN_TARGET)
 
 $(EE_OBJS_DIR):
 	@mkdir -p $(EE_OBJS_PS2_DIR)
+	@mkdir -p $(EE_OBJS_AD_DIR)
 
 $(EE_OBJS_DIR)%.o: $(EE_SRC_DIR)%.cpp | $(EE_OBJS_DIR)
+	$(EE_CXX) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
+
+$(EE_OBJS_AD_DIR)%.o: $(EE_SRC_AD_DIR)%.cpp | $(EE_OBJS_DIR)
 	$(EE_CXX) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
 
 $(EE_OBJS_PS2_DIR)%.o: $(EE_SRC_PS2_DIR)%.cpp | $(EE_OBJS_DIR)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tamtypes.h>
+
 // Specifies a sub-file in a lump.
 struct LmpDirEntry
 {
@@ -19,3 +21,4 @@ struct LmpDir
 u8* getLmp(const char* lmpName);
 void setLmpGeneration(int gen);
 u8* findLmpEntry(const char *lmpName, const char *entryName);
+LmpDirEntry * searchLmpForNthFileWithExt(u8 *lmpDataUnaligned, const char *ext, int n);
