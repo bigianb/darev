@@ -47,6 +47,13 @@ int main(int argc, char* argv[])
     initDMA();
     traceln("DMA init done");
 
+/*
+    bootstrapVIFs();
+    REG_RCNT0_MODE = 0x83;
+    REG_RCNT0_COUNT = 0;
+    REG_RCNT1_MODE = 0x9f;
+*/
+
     getLmp("fx.lmp");
     //getLmp("mouth.lmp");
     setLmpGeneration(100);

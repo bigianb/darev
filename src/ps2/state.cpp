@@ -9,4 +9,10 @@ int selectedLanguageId = 1;
 
 char curLevelId[8] = {0,0,0,0,0,0,0,0};
 
+char curLevelName[80];
+
 int disableBackgroundColourEffects = 0;
+
+int curRandomNum = 0;
+
+int gameExited = 0;

@@ -4,7 +4,7 @@
 #include "font.h"
 #include "trace.h"
 
-float textBrightness = 1.0f;
+float textBrightness[2] = {1.0f, 1.0f};
 
 u64* pTextDma;
 u16* pCharNloop;

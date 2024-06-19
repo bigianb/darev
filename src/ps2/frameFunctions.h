@@ -10,3 +10,4 @@ public:
 
 extern FrameFunctionDef frameFunctions[];
 extern int numRegisteredFrameFunctions;
+extern int prevExecutedFrameFunctionIdx;

@@ -5,7 +5,7 @@ const int maxFrameFunctions = 16;
 FrameFunctionDef frameFunctions[maxFrameFunctions];
 int numRegisteredFrameFunctions = 0;
 
-int DAT_ram_00325c94;
+int prevExecutedFrameFunctionIdx;
 
 void registerFrameFunction(void (*function)(void), int priority, char* name)
 {
@@ -38,8 +38,8 @@ void registerFrameFunction(void (*function)(void), int priority, char* name)
     frameFunctions[srcIdx].func = function;
     frameFunctions[srcIdx].priority = priority;
     frameFunctions[srcIdx].name = name;
-    if (DAT_ram_00325c94 >= (srcIdx-1)) {
-        ++DAT_ram_00325c94;
+    if (prevExecutedFrameFunctionIdx >= (srcIdx-1)) {
+        ++prevExecutedFrameFunctionIdx;
     }
 
     ++numRegisteredFrameFunctions;

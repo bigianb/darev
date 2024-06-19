@@ -41,7 +41,7 @@ void drawMenu(int xpos, int ypos, MenuDef* menuDefs, u32 color, u32 colorSel, Fo
         } while (400 < iVar5);
     }
 
-    beginText(font, 7, 0, scaleColor(textBrightness, color));
+    beginText(font, 7, 0, scaleColor(textBrightness[0], color));
 
     u16 wTextBuf[128];
 
@@ -75,27 +75,27 @@ void drawMenu(int xpos, int ypos, MenuDef* menuDefs, u32 color, u32 colorSel, Fo
                     */
         bool colorResetNeeded = false;
         if (idx == selectedIdx) {
-            setTextColor(scaleColor(textBrightness, colorSel));
+            setTextColor(scaleColor(textBrightness[0], colorSel));
             colorResetNeeded = true;
         }
         /*
         int iVar11 = menuDef.typeOrSelectedIdx;
         if (iVar11 == 5) {
-            setTextColor(scaleColor(textBrightness * 0.5, color));
+            setTextColor(scaleColor(textBrightness[0] * 0.5, color));
             colorResetNeeded = true;
         }
         if (iVar11 == 6) {
-            setTextColor(scaleColor(textBrightness, 0x80202040));
+            setTextColor(scaleColor(textBrightness[0], 0x80202040));
             colorResetNeeded = true;
         }
         if (iVar11 == 7) {
-            setTextColor(scaleColor(textBrightness, 0x80402020));
+            setTextColor(scaleColor(textBrightness[0], 0x80402020));
             colorResetNeeded = true;
         }
         */
         displayTextCenteredW(textXpos, textYpos, wTextBuf, 1000000);
         if (colorResetNeeded) {
-            setTextColor(scaleColor(textBrightness, color));
+            setTextColor(scaleColor(textBrightness[0], color));
         }
 
         idx += 1;
@@ -132,7 +132,7 @@ void drawMenu(int xpos, int ypos, MenuDef* menuDefs, u32 color, u32 colorSel, Fo
 
         int width = tex->width << 0x10;
 
-        brightness = (int)((float)brightness * textBrightness);
+        brightness = (int)((float)brightness * textBrightness[0]);
         menuNo += 1;
         if (0xff < brightness) {
             brightness = 0xff;

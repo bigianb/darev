@@ -2,7 +2,7 @@
 
 #include <tamtypes.h>
 
-extern float textBrightness;
+extern float textBrightness[2];
 
 class Font;
 

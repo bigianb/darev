@@ -63,7 +63,7 @@ void runScene(sceneHandler sceneFunc)
 
         DI();
         vblankSetsMeToFF = 0; //BYTE_ram_00325c8b == 0;
-        // INT_ram_0032445c = (char)BYTE_ram_00325c8c + 1;
+        // framesToProcess = (char)BYTE_ram_00325c8c + 1;
 
         EI();
         //  FUN_ram_001f0db0();
@@ -78,5 +78,4 @@ void runScene(sceneHandler sceneFunc)
     FUN_ram_001f02c0(2);
     FUN_ram_0013b000(1);
     */
-    return;
 }

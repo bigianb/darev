@@ -30,7 +30,7 @@ endif
 MAIN_OBJS = 
 PS2_OBJS =	display dlist draw elfData filesys font frameFunctions \
 		GIFTag gsAllocator \
-		lump main menu pad scene showLanguageMenu state \
+		levelLoop lump main menu pad scene showLanguageMenu state \
 		TexDecoder text texture trace
 ANIMDEBUG_OBJS = animDebugSetup
 
