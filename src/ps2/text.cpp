@@ -130,6 +130,14 @@ void flushText()
 
 #define oddFieldAdj 4
 
+void displayText(int xpos, int ypos, const char* text)
+{
+    u16 dest[64];
+    atowcs(dest, text);
+    displayTextW(xpos, ypos, dest, strlen(text));
+}
+
+
 void displayTextW(int x, int y, u16* text, int maxChars)
 {
     const GsGParam_t* dp = GsGetGParam();

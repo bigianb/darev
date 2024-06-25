@@ -32,7 +32,7 @@ PS2_OBJS =	display dlist draw elfData filesys font frameFunctions \
 		GIFTag gsAllocator \
 		levelLoop lump main menu pad scene showLanguageMenu state \
 		TexDecoder text texture trace
-ANIMDEBUG_OBJS = animDebugSetup
+ANIMDEBUG_OBJS = animDebugSetup animMenuDraw
 
 MAIN_OBJS := $(MAIN_OBJS:%=$(EE_OBJS_DIR)%.o)
 ANIMDEBUG_OBJS := $(ANIMDEBUG_OBJS:%=$(EE_OBJS_AD_DIR)%.o)

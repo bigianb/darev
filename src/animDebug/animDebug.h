@@ -21,9 +21,18 @@ namespace AnimDebug
     };
     extern TextureHeader modelTex;
     extern int npcSelLmpIdx;
+    extern int menuLevel;
+    extern int slectedLmpIdx;
+    extern int selectedVifMenuIdx;
+
+    // first num entries in animDebugAnms
+    extern int animDebugAnmsEntries;
+
     extern AnimDebugVif animDebugVifs[];
     extern AnimDebugAnm animDebugAnms[];
     void setup(int argc,char **argv);
+
+    void animMenuDraw();
 };
 
 

@@ -1,4 +1,5 @@
 #include "animDebug.h"
+#include "../ps2/frameFunctions.h"
 #include "../ps2/lump.h"
 #include "../ps2/texture.h"
 
@@ -6,6 +7,11 @@
 #include <cstdio>
 
 int AnimDebug::npcSelLmpIdx = -1;
+int AnimDebug::slectedLmpIdx = 0;
+int AnimDebug::selectedVifMenuIdx = 0;
+
+int AnimDebug::animDebugAnmsEntries = 0;
+int AnimDebug::menuLevel = 0;
 
 const int maxAnimDebugVifsEntries = 32;
 AnimDebug::AnimDebugVif AnimDebug::animDebugVifs[maxAnimDebugVifsEntries];
@@ -88,13 +94,13 @@ void AnimDebug::setup(int argc, char** argv)
         disableLight(pGVar7);
       }
     */
-    /*
-      maxMenuLmpEntry = 0;
-      menuLevel = 0xffffffff;
-      slectedLmpIdx = 0;
-      selectedChangeMenuIdx = 0;
-      activeChangeItems = 0;
-    */
+    
+
+    menuLevel = -1;
+    slectedLmpIdx = 0;
+    //  selectedChangeMenuIdx = 0;
+    //  activeChangeItems = 0;
+    
     char lmpName[16];
     if (argc == 2) {
         sprintf(lmpName, "./%s", argv[1]);
@@ -157,18 +163,20 @@ void AnimDebug::setup(int argc, char** argv)
     FUN_ram_00138ff0((npcObject1 *)&AnimData::animStateData);
     FUN_ram_00138ff0(&npcObject1_ram_004558e0);
     */
-    entryNum = 0;
-    while (entryNum < maxAnimDebugAnmsEntries && (lmpDirEntry = searchLmpForNthFileWithExt(npcLmp, "anm", entryNum)) != nullptr) {
-        animDebugAnms[entryNum].lmpDirEntry = lmpDirEntry;
-        animDebugAnms[entryNum].anmData = lmpDirEntry->payload;
-        ++entryNum;
+    animDebugAnmsEntries = 0;
+    while (animDebugAnmsEntries < maxAnimDebugAnmsEntries && (lmpDirEntry = searchLmpForNthFileWithExt(npcLmp, "anm", animDebugAnmsEntries)) != nullptr) {
+        animDebugAnms[animDebugAnmsEntries].lmpDirEntry = lmpDirEntry;
+        animDebugAnms[animDebugAnmsEntries].anmData = lmpDirEntry->payload;
+        ++animDebugAnmsEntries;
     }
     memccpy(&modelTex, animDebugVifs[0].mainTex, sizeof(TextureHeader), 1);
 /*
     registerFrameFunction(animInput,1,"animInput");
     registerFrameFunction(animCamera,2,"animCamera");
     registerFrameFunction(animFrame,10,"animFrame");
-    registerFrameFunction(animMenuDraw,100,"animMenuDraw");
+*/
+    registerFrameFunction(animMenuDraw, 100, "animMenuDraw");
+/*
     rotXAxis = 0x4000;
     zoom = 0.26;
     numPlayers = 0;

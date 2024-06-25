@@ -285,13 +285,14 @@ LAB_ram_0020294c:
         //if (framesToProcess < 3) {
         //    iVar8 = framesToProcess;
         //}
+        iVar8 = 1;
         int idx = 0;
         while (idx < iVar8) {
             // Execute all frame functions with a priority less than 20
             prevExecutedFrameFunctionIdx = 0;
             while (prevExecutedFrameFunctionIdx < numRegisteredFrameFunctions) {
-                if (frameFunctions[prevExecutedFrameFunctionIdx + 1].priority < 0x14) {
-                    (*frameFunctions[prevExecutedFrameFunctionIdx + 1].func)();
+                if (frameFunctions[prevExecutedFrameFunctionIdx].priority < 0x14) {
+                    (*frameFunctions[prevExecutedFrameFunctionIdx].func)();
                 }
                 prevExecutedFrameFunctionIdx += 1;
             }
@@ -318,8 +319,8 @@ LAB_ram_0020294c:
 
         if (0 < numRegisteredFrameFunctions) {
             do {
-                if (0x13 < frameFunctions[prevExecutedFrameFunctionIdx + 1].priority) {
-                    (*frameFunctions[prevExecutedFrameFunctionIdx + 1].func)();
+                if (0x13 < frameFunctions[prevExecutedFrameFunctionIdx].priority) {
+                    (*frameFunctions[prevExecutedFrameFunctionIdx].func)();
                 }
                 prevExecutedFrameFunctionIdx += 1;
             } while (prevExecutedFrameFunctionIdx < numRegisteredFrameFunctions);

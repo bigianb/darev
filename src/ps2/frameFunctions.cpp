@@ -7,7 +7,7 @@ int numRegisteredFrameFunctions = 0;
 
 int prevExecutedFrameFunctionIdx;
 
-void registerFrameFunction(void (*function)(void), int priority, char* name)
+void registerFrameFunction(void (*function)(void), int priority, const char* name)
 {
     // Check if this function is already registered.
     for (int i = 0; i < numRegisteredFrameFunctions; ++i) {

@@ -1,4 +1,6 @@
+#include <ps2_reg_defs.h>
 #include <stdio.h>
+
 #include <sifrpc.h>
 #include <loadfile.h>
 
@@ -9,6 +11,7 @@
 #include "display.h"
 #include "elfData.h"
 #include "filesys.h"
+#include "levelloop.h"
 #include "lump.h"
 #include "pad.h"
 #include "scene.h"
@@ -49,10 +52,11 @@ int main(int argc, char* argv[])
 
 /*
     bootstrapVIFs();
-    REG_RCNT0_MODE = 0x83;
-    REG_RCNT0_COUNT = 0;
-    REG_RCNT1_MODE = 0x9f;
 */
+    WR_EE_T0_MODE(0x83);      // H-blank count, not interrupt
+    WR_EE_T0_COUNT(0);
+    WR_EE_T1_MODE(0x9f);      // H-blank clock, gate on Vblank, reset on rising edge
+
 
     getLmp("fx.lmp");
     //getLmp("mouth.lmp");
@@ -68,7 +72,7 @@ int main(int argc, char* argv[])
         disableBackgroundColourEffects = 1;
         curLevelId[0] = 0;
         AnimDebug::setup(argc, argv);
-        //runLevelLoop();
+        runLevelLoop();
     }
     freeElfData();
     traceln("bye");
