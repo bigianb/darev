@@ -22,10 +22,11 @@ TextureHeader AnimDebug::modelTex;
 
 const int numLumpNames = 3;
 
-const char* allLmpNames[numLumpNames] = {
+const char* AnimDebug::allLmpNames[numLumpNames+1] = {
     "eldrith.lmp",
     "gargolye.lmp",
-    "ratgiant.lmp"};
+    "ratgiant.lmp",
+    nullptr};
 
 void AnimDebug::setup(int argc, char** argv)
 {
@@ -170,11 +171,11 @@ void AnimDebug::setup(int argc, char** argv)
         ++animDebugAnmsEntries;
     }
     memccpy(&modelTex, animDebugVifs[0].mainTex, sizeof(TextureHeader), 1);
-/*
+
     registerFrameFunction(animInput,1,"animInput");
-    registerFrameFunction(animCamera,2,"animCamera");
-    registerFrameFunction(animFrame,10,"animFrame");
-*/
+//   registerFrameFunction(animCamera,2,"animCamera");
+//    registerFrameFunction(animFrame,10,"animFrame");
+
     registerFrameFunction(animMenuDraw, 100, "animMenuDraw");
 /*
     rotXAxis = 0x4000;

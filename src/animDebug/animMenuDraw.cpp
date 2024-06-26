@@ -2,7 +2,157 @@
 #include "../ps2/elfData.h"
 #include "../ps2/font.h"
 #include "../ps2/lump.h"
+#include "../ps2/pad.h"
 #include "../ps2/text.h"
+
+int AnimDebug::animDebugFrameSkip = 0;
+int AnimDebug::slectedAnmIdx = 0;
+
+int selectedLmp = 0;
+
+void AnimDebug::drawLmpList()
+{
+    beginText((Font*)menuFont, 7, 1, 0x80808080);
+
+    int yAdj = 0;
+    int startYpos = selectedLmp * 0x14 + 0x14;
+    while (startYpos > 400) {
+        startYpos -= 0x14;
+        yAdj -= 0x14;
+    }
+
+    int curLmpIdx = 0;
+    while (allLmpNames[curLmpIdx] != nullptr) {
+        if (curLmpIdx == selectedLmp) {
+            setTextColor(0x80408080);
+        }
+        int ypos = curLmpIdx * 0x14 + yAdj + 0x14;
+        if (ypos < 0x1f5) {
+            displayText(0x1e, ypos, allLmpNames[curLmpIdx]);
+            if (curLmpIdx == selectedLmp) {
+                setTextColor(0x80808080);
+            }
+        }
+        ++curLmpIdx;
+    }
+
+    if (curLmpIdx <= selectedLmp) {
+        selectedLmp = curLmpIdx - 1;
+    }
+    if (((convertedControllerInput[0].updatedButtons2 & 0x1000U) != 0) && (0 < selectedLmp)) {
+        --selectedLmp;
+    }
+    if (((convertedControllerInput[0].updatedButtons2 & 0x4000U) != 0) &&
+        (allLmpNames[selectedLmp + 1] != nullptr)) {
+        ++selectedLmp;
+    }
+
+    flushText();
+}
+
+void AnimDebug::animInput()
+{
+    if ((animDebugFrameSkip == 0) || (animDebugFrameSkip += -1, animDebugFrameSkip != 0)) {
+        if (((convertedControllerInput[0].updatedButtons & DA_PAD_LEFT) != 0) && (-1 < menuLevel)) {
+            --menuLevel;
+        }
+        if (((convertedControllerInput[0].updatedButtons & DA_PAD_RIGHT) != 0) && (menuLevel < 4)) {
+            ++menuLevel;
+        }
+
+        if (menuLevel == 0) {
+            // anm list
+
+            if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_UP) != 0) && (slectedAnmIdx > 0)) {
+                --slectedAnmIdx;
+            }
+            if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_DOWN) != 0) && (slectedAnmIdx < animDebugAnmsEntries - 1)) {
+                ++slectedAnmIdx;
+            }
+            if (animDebugAnmsEntries > 0) {
+                if ((convertedControllerInput[0].updatedButtons & DA_PAD_TRIANGLE) != 0) {
+                    //FUN_ram_00138d28(0.2, 0.2, &AnimData::animStateData, animDebugAnms[slectedAnmIdx].anmData, 0);
+                    //DAT_ram_0032468c = 10;
+                }
+                if ((convertedControllerInput[0].updatedButtons & DA_PAD_CROSS) != 0) {
+                    //FUN_ram_00138c50(0.3, &AnimData::animStateData, animDebugAnms[slectedAnmIdx].anmData, 3);
+                    //DAT_ram_0032468c = 10;
+                }
+            }
+        } else if (menuLevel == -1) {
+            drawLmpList(/*&lmpInfo*/);
+            if ((convertedControllerInput[0].updatedButtons & DA_PAD_CROSS) != 0) {
+                animDebugFrameSkip = 3;
+                npcSelLmpIdx = selectedLmp;
+            }
+        }
+
+        else if (menuLevel == 1) {
+            /*
+            if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_UP) != 0) && (1 < selectedVifMenuIdx)) {
+                selectedVifMenuIdx += -1;
+            }
+            if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_DOWN) != 0) &&
+                (selectedVifMenuIdx < maxAnimDebugVifIdx + -1)) {
+                selectedVifMenuIdx += 1;
+            }
+            if ((convertedControllerInput[0].updatedButtons & DA_PAD_CIRCLE) != 0) {
+                animDebugVifs[selectedVifMenuIdx].field2_0x8 ^= 1;
+            }
+            */
+        } else if (menuLevel == 2) {
+            /*
+            if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_UP) != 0) && (0 < selectedChangeMenuIdx)) {
+                --selectedChangeMenuIdx;
+            }
+            if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_DOWN) != 0) && (selectedChangeMenuIdx < 0x1f)) {
+                ++selectedChangeMenuIdx;
+            }
+            if ((convertedControllerInput[0].updatedButtons & DA_PAD_CROSS) != 0) {
+                activeChangeItems ^= 1 << (selectedChangeMenuIdx & 0x1f);
+            }
+            */
+        }
+        /*
+        if ((convertedControllerInput[0].RLUD_buttons & 0x400U) == 0) {
+            iVar1 = (uint)rotXAxis + (int)(convertedControllerInput[0].r_stick_y * 900.0);
+            rotZAxis += (short)(int)(convertedControllerInput[0].r_stick_x * 900.0);
+            rotXAxis = (ushort)iVar1;
+            if (iVar1 * 0x10000 >> 0x10 < -10000) {
+                rotXAxis = 0xd8f0;
+            }
+            if (10000 < (short)rotXAxis) {
+                rotXAxis = 10000;
+            }
+            if ((convertedControllerInput[0].RLUD_buttons & 4U) == 0) {
+                zoom = zoom + convertedControllerInput[0].l_stick_y * 0.02;
+                if (zoom < 0.1) {
+                    zoom = 0.1;
+                }
+                if (2.0 < zoom) {
+                    zoom = 2.0;
+                }
+            } else {
+                fVar2 = 1.0 / SQRT(particle_3x3Matrix.m00 * particle_3x3Matrix.m00 +
+                                   particle_3x3Matrix.m01 * particle_3x3Matrix.m01);
+                fVar3 = 1.0 / SQRT(particle_3x3Matrix.m20 * particle_3x3Matrix.m20 +
+                                   particle_3x3Matrix.m21 * particle_3x3Matrix.m21);
+                camYPos = camYPos + particle_3x3Matrix.m21 * fVar3 * convertedControllerInput[0].l_stick_y * -3.0 +
+                          particle_3x3Matrix.m01 * fVar2 *
+                              convertedControllerInput[0].l_stick_x * 3.0;
+                camXPos = camXPos + particle_3x3Matrix.m20 * fVar3 * convertedControllerInput[0].l_stick_y * -3.0 +
+                          particle_3x3Matrix.m00 * fVar2 *
+                              convertedControllerInput[0].l_stick_x * 3.0;
+            }
+        } else {
+            camZpos = camZpos - convertedControllerInput[0].r_stick_y;
+        }
+        */
+    } else {
+        //lmpCleanup(0);
+        setup(0, NULL);
+    }
+}
 
 void AnimDebug::animMenuDraw()
 {
@@ -149,12 +299,6 @@ void AnimDebug::animMenuDraw()
          } while (lVar4 < 0x20);
          flushText();
          */
-    } break;
-    default:
-    {
-        beginText((Font*)menuFont, 3, 1, 0x80808080);
-        displayText(0x14, 100, "menu level -1");
-        flushText();
     } break;
     }
 }

@@ -24,15 +24,23 @@ namespace AnimDebug
     extern int menuLevel;
     extern int slectedLmpIdx;
     extern int selectedVifMenuIdx;
+    extern int slectedAnmIdx;
+
+    extern int animDebugFrameSkip;
 
     // first num entries in animDebugAnms
     extern int animDebugAnmsEntries;
+
+    extern const char* allLmpNames[];
 
     extern AnimDebugVif animDebugVifs[];
     extern AnimDebugAnm animDebugAnms[];
     void setup(int argc,char **argv);
 
     void animMenuDraw();
+    void animInput();
+
+    void drawLmpList();
 };
 
 
