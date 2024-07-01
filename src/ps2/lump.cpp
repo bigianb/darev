@@ -128,7 +128,7 @@ LmpDirEntry* searchLmpForNthFileWithExt(u8* lmpDataUnaligned, const char* ext, i
     // LmpDir is aligned to a 256 byte boundary
     LmpDir* lmpDir = (LmpDir*)((u32)(lmpDataUnaligned + 0xff) & 0xffffff00);
 
-    int numFound = 0;
+    int numFound = -1;
     int i = 0;
     while (i < lmpDir->numEntries && numFound != n) {
         const char* pDot = strrchr(lmpDir->entries[i].name, '.');

@@ -9,6 +9,10 @@
 int AnimDebug::npcSelLmpIdx = -1;
 int AnimDebug::slectedLmpIdx = 0;
 int AnimDebug::selectedVifMenuIdx = 0;
+int AnimDebug::selectedChangeMenuIdx = 0;
+unsigned int AnimDebug::activeChangeItems = 0;
+
+int AnimDebug::maxAnimDebugVifIdx = 0;
 
 int AnimDebug::animDebugAnmsEntries = 0;
 int AnimDebug::menuLevel = 0;
@@ -99,8 +103,8 @@ void AnimDebug::setup(int argc, char** argv)
 
     menuLevel = -1;
     slectedLmpIdx = 0;
-    //  selectedChangeMenuIdx = 0;
-    //  activeChangeItems = 0;
+    selectedChangeMenuIdx = 0;
+    activeChangeItems = 0;
     
     char lmpName[16];
     if (argc == 2) {
@@ -118,7 +122,7 @@ void AnimDebug::setup(int argc, char** argv)
     /*
       strcpy(AnimData::animStateData.animName, lmpName);
       */
-    int maxAnimDebugVifIdx = 0;
+    maxAnimDebugVifIdx = 0;
     LmpDirEntry* lmpDirEntry;
     int entryNum = 0;
     int prevVifLen = 0;

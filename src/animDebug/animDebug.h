@@ -25,6 +25,9 @@ namespace AnimDebug
     extern int slectedLmpIdx;
     extern int selectedVifMenuIdx;
     extern int slectedAnmIdx;
+    extern int selectedChangeMenuIdx;
+    extern int maxAnimDebugVifIdx;
+    extern unsigned int activeChangeItems;
 
     extern int animDebugFrameSkip;
 
