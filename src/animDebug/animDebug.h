@@ -19,6 +19,14 @@ namespace AnimDebug
         int unk;
         TextureHeader* mainTex;
     };
+
+    extern short rotXAxis;
+    extern float zoom;
+
+    extern float camXpos;
+    extern float camYpos;
+    extern float camZpos;
+
     extern TextureHeader modelTex;
     extern int npcSelLmpIdx;
     extern int menuLevel;
@@ -42,6 +50,7 @@ namespace AnimDebug
 
     void animMenuDraw();
     void animInput();
+    void animFrame();
 
     void drawLmpList();
 };

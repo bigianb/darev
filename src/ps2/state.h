@@ -12,3 +12,5 @@ extern int disableBackgroundColourEffects;
 extern int curRandomNum;
 
 extern int gameExited;
+
+extern int numPlayers;

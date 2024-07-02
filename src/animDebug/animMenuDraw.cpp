@@ -291,3 +291,105 @@ void AnimDebug::animMenuDraw()
     } break;
     }
 }
+
+
+void AnimDebug::animFrame()
+{
+  if (animDebugFrameSkip == 0) {
+    /*
+    local_510.x = 0.0;
+    local_510.y = 0.0;
+    local_510.z = 0.0;
+    FUN_ram_001368d0(1.0,&AnimData::animStateData,&local_510);
+
+    vifData = animDebugVifs[0].vifData;
+    meshMask = FUN_ram_0013fea0(animDebugVifs[0].vifData,activeChangeItems);
+    getVifBBox(vifData,-1,&iStack_c0,&iStack_bc,&local_b8,&iStack_b4,&iStack_b0,local_ac);
+    camZPos = (float)((local_ac[0] + local_b8) / 2);
+    if (camZPos <= 0.0) {
+      camZPos = 0.0;
+    }
+    */
+
+   /*
+    iVar9 = 1;
+    iVar7 = 0;
+    if (1 < maxAnimDebugVifIdx) {
+      do {
+        if (animDebugVifs[iVar9].field2_0x8 != 0) {
+          pVVar2 = animDebugVifs[iVar9].vifData;
+          uVar6._0_1_ = pVVar2->sig[0];
+          uVar6._1_1_ = pVVar2->sig[1];
+          uVar6._2_1_ = pVVar2->sig[2];
+          uVar6._3_1_ = pVVar2->sig[3];
+          uVar6._4_4_ = *(undefined4 *)&pVVar2->field_0x4;
+          local_500[iVar7 * 2 + 1] = (VifData *)animDebugVifs[iVar9].mainTex;
+          local_500[iVar7 * 2] = pVVar2;
+          iVar7 += 1;
+          meshMask &= ~uVar6;
+        }
+        iVar9 += 1;
+      } while (iVar9 < maxAnimDebugVifIdx);
+    }
+*/
+
+/*
+    iVar7 = getNumTrisOfSelectedVifs(vifData, meshMask);
+    iVar4 = (int)uVar10;
+    iVar9 = 1;
+    if (1 < maxAnimDebugVifIdx) {
+      ppVVar8 = &animDebugVifs[1].vifData;
+      iVar5 = maxAnimDebugVifIdx;
+      do {
+        if (ppVVar8[1] != NULL) {
+          iVar4 = getNumTrisOfSelectedVifs(*ppVVar8,0xffffffffffffffff);
+          iVar7 += iVar4;
+          iVar5 = maxAnimDebugVifIdx;
+        }
+        iVar9 += 1;
+        iVar4 = (int)uVar10;
+        ppVVar8 = ppVVar8 + 4;
+      } while (iVar9 < iVar5);
+    }
+*/
+
+/*
+    numTris = iVar7;
+
+    local_510.x = camXPos;
+    local_510.y = camYPos;
+    local_510.z = camZpos;
+
+    makeIdentityMtx_3x4(&mStack_100);
+    translate(camXPos,camYPos,camZpos,&mStack_100);
+    DAT_ram_00324604 = 1;
+    _auStack_d0 = CONCAT44(local_510.y,local_510.x);
+    puVar1 = auStack_d0 + 7;
+    uVar3 = (uint)puVar1 & 7;
+    *(ulong *)(puVar1 + -uVar3) =
+         *(ulong *)(puVar1 + -uVar3) & -1L << (uVar3 + 1) * 8 | _auStack_d0 >> (7 - uVar3) * 8;
+    uStack_c9._1_4_ = local_510.z;
+                    // anim state at 0x4559e8
+                    // 
+    drawAnimatedModel(vifData,&modelTex,1,(Vec3 *)auStack_d0,&mStack_100,
+                      (animStateData *)(iVar4 + 0x59e8),meshMask,0);
+    FUN_ram_0013fa70();
+    if (('\0' < *(char *)(iVar4 + 0x59ec)) &&
+       ((float)((animStateData *)(iVar4 + 0x59e8))->stateArray[*(char *)(iVar4 + 0x59ec) + -1].
+               desiredFrame < 2.0)) {
+      drawColorSprite(0x21c,0x15c,0x24e,0x18e,6,0x80ffffff);
+      if (*(char *)(iVar4 + 0x59ec) == '\x01') {
+        drawColorSprite(0x221,0x161,0x249,0x189,7,0x80000000);
+      }
+      DAT_ram_0032468c += -1;
+    }
+    */
+    if (menuLevel < 3) {
+      beginText((Font*)menuFont, 3, 1, 0x80808080);
+     // displayTextCentered(0x140, 0x1a4, AnimData::animStateData.animName);
+      flushText();
+    }
+  }
+  return;
+}
+

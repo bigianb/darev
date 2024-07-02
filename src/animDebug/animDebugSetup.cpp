@@ -1,10 +1,17 @@
 #include "animDebug.h"
 #include "../ps2/frameFunctions.h"
 #include "../ps2/lump.h"
+#include "../ps2/state.h"
 #include "../ps2/texture.h"
 
 #include <string.h>
 #include <cstdio>
+
+short AnimDebug::rotXAxis = 0x4000;
+float AnimDebug::zoom = 0.26;
+float AnimDebug::camXpos = 0.0;
+float AnimDebug::camYpos = 0.0;
+float AnimDebug::camZpos = 0.0;
 
 int AnimDebug::npcSelLmpIdx = -1;
 int AnimDebug::slectedLmpIdx = 0;
@@ -178,13 +185,12 @@ void AnimDebug::setup(int argc, char** argv)
 
     registerFrameFunction(animInput,1,"animInput");
 //   registerFrameFunction(animCamera,2,"animCamera");
-//    registerFrameFunction(animFrame,10,"animFrame");
+    registerFrameFunction(animFrame,10,"animFrame");
 
     registerFrameFunction(animMenuDraw, 100, "animMenuDraw");
-/*
+
     rotXAxis = 0x4000;
     zoom = 0.26;
     numPlayers = 0;
     camZpos = 0.0;
-*/
 }

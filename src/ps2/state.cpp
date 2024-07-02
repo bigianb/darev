@@ -16,3 +16,5 @@ int disableBackgroundColourEffects = 0;
 int curRandomNum = 0;
 
 int gameExited = 0;
+
+int numPlayers = 0;
