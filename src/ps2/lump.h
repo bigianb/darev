@@ -20,5 +20,8 @@ struct LmpDir
 
 u8* getLmp(const char* lmpName);
 void setLmpGeneration(int gen);
+void lmpCleanup(int minGen);
 u8* findLmpEntry(const char *lmpName, const char *entryName);
 LmpDirEntry * searchLmpForNthFileWithExt(u8 *lmpDataUnaligned, const char *ext, int n);
+
+void freeLmpData(u8* unalignedData);

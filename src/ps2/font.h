@@ -33,7 +33,9 @@ public:
     GlyphInfo* glyphInfoArray;
     GlyphKernPair* kernArray;
     TextureHeader* texture;
+    int16_t ansiToGlyph[256];
 };
 
 void charsToGlyphs(Font* font, u16* text);
+int measureText(Font *font, const char *text, bool interlaced);
 int measureTextW(Font *font, u16 *text, int nChars, bool interlaced);

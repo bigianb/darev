@@ -10,6 +10,13 @@ void* allocMem(int size, const char* name)
     return malloc(size);
 }
 
+void hunkFree(void *p)
+{
+    if (p != nullptr){
+        free(p);
+    }
+}
+
 void doLoadLmp(const char* lmpName)
 {
     char cdPath[80];
@@ -59,6 +66,7 @@ u8* getLmp(const char* lmpName)
     u8* pData = nullptr;
     for (int i = 0; i < numLoadedLmps && pData == nullptr; ++i) {
         if (0 == strcmp(loadedLmpInfo[i].name, lmpName)) {
+            traceln("Found lmp %s", lmpName);
             pData = loadedLmpInfo[i].fileDataUnaligned;
         }
     }
@@ -103,6 +111,70 @@ void setLmpGeneration(int gen)
     */
     return;
 }
+
+int lmpCleanupCount = 1;
+
+void lmpCleanup(int minGen)
+{
+    if (numLoadedLmps <= 0) {
+        return;
+    }
+
+    //DAT_ram_00448480 = 0;
+    //cleanupVags(minLmpGen);
+
+    int gen = loadedLmpInfo[numLoadedLmps - 1].generation;
+    while (numLoadedLmps > 0 && gen <= minGen) {
+        freeLmpData(loadedLmpInfo[numLoadedLmps - 1].fileDataUnaligned);
+        gen = loadedLmpInfo[numLoadedLmps - 1].generation;
+    }
+    ++lmpCleanupCount;
+}
+
+void freeLmpData(u8* unalignedData)
+{
+    LmpDir* lmpDir = (LmpDir*)((u32)(unalignedData + 0xff) & 0xffffff00);
+    int lmpIdx = 0;
+
+    while ((lmpIdx < numLoadedLmps && (loadedLmpInfo[lmpIdx].fileDataUnaligned != unalignedData))) {
+        lmpIdx += 1;
+    }
+    if (lmpIdx == numLoadedLmps) {
+        // not found
+        return;
+    }
+
+    if (lmpDir != nullptr) {
+        int entryNum = 0;
+        while (entryNum < lmpDir->numEntries) {
+            const char* dotPos = strrchr(lmpDir->entries[entryNum].name, '.');
+            if (dotPos != nullptr) {
+                const char* ext = dotPos + 1;
+                if (strcmp(ext, "tex") == 0) {
+                    //        resetTexData((TextureHeader*)lmpDir->entries[entryNum].payload);
+                } else if (strcmp(ext, "world") == 0) {
+                    //        FUN_ram_001466b8((WorldData*)lmpDir->entries[entryNum].payload);
+                } else if (strcmp(ext, "uni") == 0) {
+                    //        FUN_ram_0013b4e0((short*)lmpDir->entries[entryNum].payload);
+                }
+            }
+        }
+    }
+
+    // number of element beyond lmpIdx
+    int finalLmpIdx = numLoadedLmps-1;
+    int numToCopy = finalLmpIdx - lmpIdx;
+
+    if (numToCopy > 0){
+        // copy lmpIdx + 1 to lmpIdx to close the gap.
+        void* pDest = &loadedLmpInfo[lmpIdx];
+        void* pSrc = &loadedLmpInfo[lmpIdx+1];
+        memmove(pDest, pSrc, numToCopy * sizeof(lmpDir->entries[0]));
+    }
+    --numLoadedLmps;
+    hunkFree(unalignedData);
+}
+
 
 u8* findLmpEntry(const char* lmpName, const char* entryName)
 {

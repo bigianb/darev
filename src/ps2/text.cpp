@@ -4,6 +4,9 @@
 #include "font.h"
 #include "trace.h"
 
+#include <stdio.h>
+#include <stdarg.h>
+
 float textBrightness[2] = {1.0f, 1.0f};
 
 u64* pTextDma;
@@ -122,7 +125,7 @@ void flushText()
 
     int totalQWordsInDma = (pTextDma - pTextDmaStart) / 2;
 
-    *pTextDmaStart = (totalQWordsInDma - 1) | 0x70000000ULL;  // end, no interrupt
+    *pTextDmaStart = (totalQWordsInDma - 1) | 0x70000000ULL; // end, no interrupt
 
     curDMABufTail = pTextDma;
     queueDMA(pTextDmaStart, textDmaSlot, pTextFont->texture, nullptr, textAppendFlag == 0);
@@ -130,13 +133,110 @@ void flushText()
 
 #define oddFieldAdj 4
 
-void displayText(int xpos, int ypos, const char* text)
+void displayText(int x, int y, const char* text)
 {
-    u16 dest[64];
-    atowcs(dest, text);
-    displayTextW(xpos, ypos, dest, strlen(text));
-}
+    const GsGParam_t* dp = GsGetGParam();
 
+    int xPhys;
+    int yPhys;
+    int wShift; // Number of times to shift the width value left.
+    int yShift;
+    int yAdjust;
+    if (y + 100 < 0x385) {
+        if (isInterlaced == 0) {
+            xPhys = x * 0x10 + 0x6c00;
+            yPhys = y * 0x10 + 0x7000;
+            yAdjust = 0;
+            wShift = 4;
+            yShift = 4;
+        } else if (dp->omode == GS_MODE_DTV_480P || dp->omode == GS_MODE_DTV_576P) {
+            xPhys = x * 0x10 + 0x5800;
+            yPhys = y * 0x10 + 0x7000;
+            yAdjust = 0;
+            wShift = 4;
+            yShift = 4;
+        } else {
+            int yDev = y * 0x10;
+            yPhys = yDev + 0x7000;
+            xPhys = x * 0x20 + 0x5800;
+            if ((yPhys & 0x10) == 0) {
+                // Even row
+                yAdjust = 0;
+                if (isOddField) {
+                    yAdjust = (pTextFont->texture->height / 2) * 0x10 + -oddFieldAdj;
+                }
+            } else {
+                yPhys = yDev + 0x6ff0;
+                if (isOddField) {
+                    yAdjust = -oddFieldAdj;
+                } else {
+                    yAdjust = (pTextFont->texture->height / 2) * 0x10;
+                    yPhys = yDev + 0x7010;
+                }
+            }
+            wShift = 5;
+            yShift = 3;
+        }
+
+        int16_t prevGlyphId = -1;
+        while (*text != 0) {
+            int16_t glyphId = pTextFont->ansiToGlyph[*(unsigned char*)text];
+            if (glyphId > 0) {
+                GlyphInfo& gi = pTextFont->glyphInfoArray[glyphId];
+
+                int physX0 = gi.x0 * 0x10;
+
+                int physX1 = gi.x1 * 0x10;
+                int kernId = gi.kernId;
+
+                int iVar17 = gi.y0 << yShift;
+                int iVar16 = gi.y1 << yShift;
+
+                int physGlyphYOffset = gi.yOffset << yShift;
+                int physGlyphHeight = iVar16 - iVar17;
+
+                // TODO: should be a font function
+
+                if ((kernId >= 0) && (pTextFont->kernArray[kernId].glyph2 == glyphId)) {
+                    do {
+                        GlyphKernPair& pair = pTextFont->kernArray[kernId];
+                        if (pair.glyph1 == prevGlyphId) {
+                            const int kern = pair.kern;
+                            if (isInterlaced == 0) {
+                                xPhys += kern * 8;
+                            } else {
+                                xPhys += kern * 0x10;
+                            }
+                            break;
+                        }
+                        ++kernId;
+                    } while (pTextFont->kernArray[kernId].glyph2 == glyphId);
+                }
+
+                if (isInterlaced == 0 || dp->omode == GS_MODE_DTV_480P || dp->omode == GS_MODE_DTV_576P) {
+                    pTextDma[0] = (iVar17 + 8) * 0x10000 | (physX0 + 8);
+                    pTextDma[1] = xPhys | ((yPhys + physGlyphYOffset) * 0x10000);
+                    pTextDma[2] = (iVar16 + 8) * 0x10000 | (physX1 + 8);
+                    pTextDma[3] = (xPhys + physX1 - physX0) | (yPhys + physGlyphYOffset + physGlyphHeight) * 0x10000;
+                } else {
+                    pTextDma[0] = (yAdjust + iVar17 + 4) * 0x10000 | (physX0 + 4);
+                    pTextDma[1] = xPhys | ((yPhys + physGlyphYOffset * 2) * 0x10000);
+                    pTextDma[2] = (yAdjust + iVar16 + 4) * 0x10000 | (physX1 + 4);
+                    pTextDma[3] = (xPhys + (physX1 - physX0) * 2) |
+                                  (yPhys + (physGlyphYOffset + physGlyphHeight) * 2) * 0x10000;
+                }
+                pTextDma += 4;
+                numCharsInDmaQueue += 1;
+
+                xPhys += (gi.width << wShift);
+            } else {
+                xPhys += (pTextFont->glyphInfoArray->width << wShift);
+            }
+            ++text;
+            prevGlyphId = glyphId;
+        }
+    }
+}
 
 void displayTextW(int x, int y, u16* text, int maxChars)
 {
@@ -146,9 +246,9 @@ void displayTextW(int x, int y, u16* text, int maxChars)
 
     int xPhys;
     int yPhys;
-    int wShift;     // Number of times to shift the width value left.
+    int wShift; // Number of times to shift the width value left.
     int yShift;
-    int yAdjust;        
+    int yAdjust;
     if ((y + 100 < 0x385) && (maxChars > 0)) {
         if (isInterlaced == 0) {
             xPhys = x * 0x10 + 0x6c00;
@@ -170,14 +270,14 @@ void displayTextW(int x, int y, u16* text, int maxChars)
                 // Even row
                 yAdjust = 0;
                 if (isOddField) {
-                    yAdjust = (pTextFont->texture->height /2) * 0x10 + -oddFieldAdj;
+                    yAdjust = (pTextFont->texture->height / 2) * 0x10 + -oddFieldAdj;
                 }
             } else {
                 yPhys = yDev + 0x6ff0;
                 if (isOddField) {
                     yAdjust = -oddFieldAdj;
                 } else {
-                    yAdjust = (pTextFont->texture->height /2) * 0x10;
+                    yAdjust = (pTextFont->texture->height / 2) * 0x10;
                     yPhys = yDev + 0x7010;
                 }
             }
@@ -185,7 +285,6 @@ void displayTextW(int x, int y, u16* text, int maxChars)
             yShift = 3;
         }
 
-        
         u16 prevGlyphId = 0xffff;
         while (maxChars > 0 && *text != 0) {
             u16 glyphId = *text;
@@ -194,7 +293,7 @@ void displayTextW(int x, int y, u16* text, int maxChars)
                 GlyphInfo& gi = pTextFont->glyphInfoArray[cleanGlyphId];
                 if (cleanGlyphId != 0) {
                     int physX0 = gi.x0 * 0x10;
-                    
+
                     int physX1 = gi.x1 * 0x10;
                     int kernId = gi.kernId;
 
@@ -205,8 +304,8 @@ void displayTextW(int x, int y, u16* text, int maxChars)
                     int physGlyphHeight = iVar16 - iVar17;
 
                     // TODO: should be a font function
-                    
-                    if ((kernId >= 0) && (pTextFont->kernArray[kernId].glyph2 == cleanGlyphId)) {  
+
+                    if ((kernId >= 0) && (pTextFont->kernArray[kernId].glyph2 == cleanGlyphId)) {
                         do {
                             GlyphKernPair& pair = pTextFont->kernArray[kernId];
                             if (pair.glyph1 == prevGlyphId) {
@@ -232,7 +331,7 @@ void displayTextW(int x, int y, u16* text, int maxChars)
                         pTextDma[1] = xPhys | ((yPhys + physGlyphYOffset * 2) * 0x10000);
                         pTextDma[2] = (yAdjust + iVar16 + 4) * 0x10000 | (physX1 + 4);
                         pTextDma[3] = (xPhys + (physX1 - physX0) * 2) |
-                                        (yPhys + (physGlyphYOffset + physGlyphHeight) * 2) * 0x10000;
+                                      (yPhys + (physGlyphYOffset + physGlyphHeight) * 2) * 0x10000;
                     }
                     pTextDma += 4;
                     numCharsInDmaQueue += 1;
@@ -244,14 +343,19 @@ void displayTextW(int x, int y, u16* text, int maxChars)
             prevGlyphId = cleanGlyphId;
         }
     }
-    return;
 }
 
-int logCount=5;
+int logCount = 5;
 void displayTextCenteredW(int xCenter, int ypos, u16* text, int maxChars)
 {
     int w = measureTextW(pTextFont, text, maxChars, isInterlaced != 0);
-    displayTextW(xCenter - w/2, ypos, text, maxChars);
+    displayTextW(xCenter - w / 2, ypos, text, maxChars);
+}
+
+void displayTextCentered(int xCenter, int ypos, const char* text)
+{
+    int w = measureText(pTextFont, text, isInterlaced != 0);
+    displayText(xCenter - w / 2, ypos, text);
 }
 
 u32 scaleColor(float scale, u32 color)
@@ -266,4 +370,14 @@ u32 scaleColor(float scale, u32 color)
     scaledB = scaledB < 0 ? 0 : (scaledB & 0xFF);
 
     return scaledB | (color & 0xff000000) | scaledG << 16 | scaledR << 8;
+}
+void displayFormattedText(int xpos, int ypos, const char* format, ...)
+{
+    char buffer[1024];
+    va_list args;
+    va_start(args, format);
+    vsprintf(buffer, format, args);
+    va_end(args);
+
+    displayText(xpos, ypos, buffer);
 }

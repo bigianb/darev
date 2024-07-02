@@ -75,3 +75,43 @@ int measureTextW(Font* font, u16* text, int nChars, bool interlaced)
 
     return width / 16;
 }
+
+int measureText(Font* font, const char* text, bool interlaced)
+{
+    int width = 0;
+    const unsigned char* p = (const unsigned char*)text;
+    int prevGlyph = -1;
+    while (*p != 0)
+    {
+        int16_t glyphId = font->ansiToGlyph[*(unsigned char*)text];
+        if (glyphId > 0){
+            const int glyphWidth = font->glyphInfoArray[glyphId].width;
+
+            int kernId = font->glyphInfoArray[glyphId].kernId;
+            
+            while (font->kernArray[kernId].glyph2 == glyphId){
+
+                // we're the second part of the kern pair
+                if (font->kernArray[kernId].glyph1 == prevGlyph){
+                    // ... and the previous glyph is the first pair so apply the kern adjustment
+                    const int kern = font->kernArray[kernId].kern;
+                    if (interlaced) {
+                        width += kern * 16;
+                    } else {
+                        width += kern * 8;
+                    }
+                    break;
+                }
+                ++kernId;
+            }
+            
+            width += glyphWidth * 16;
+        } else {
+            width += font->glyphInfoArray->width * 16;
+        }
+        prevGlyph = glyphId;
+        ++p;
+    }
+
+    return width / 16;
+}

@@ -28,7 +28,7 @@ const int numLumpNames = 3;
 
 const char* AnimDebug::allLmpNames[numLumpNames+1] = {
     "eldrith.lmp",
-    "gargolye.lmp",
+    "gargoyle.lmp",
     "ratgiant.lmp",
     nullptr};
 

@@ -9,6 +9,7 @@ int AnimDebug::animDebugFrameSkip = 0;
 int AnimDebug::slectedAnmIdx = 0;
 
 int selectedLmp = 0;
+int numTris = 0;
 
 void AnimDebug::drawLmpList()
 {
@@ -36,13 +37,13 @@ void AnimDebug::drawLmpList()
         ++curLmpIdx;
     }
 
-    if (curLmpIdx <= selectedLmp) {
+    if (selectedLmp >= curLmpIdx) {
         selectedLmp = curLmpIdx - 1;
     }
-    if (((convertedControllerInput[0].updatedButtons2 & 0x1000U) != 0) && (0 < selectedLmp)) {
+    if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_UP) != 0) && (selectedLmp > 0)) {
         --selectedLmp;
     }
-    if (((convertedControllerInput[0].updatedButtons2 & 0x4000U) != 0) &&
+    if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_DOWN) != 0) &&
         (allLmpNames[selectedLmp + 1] != nullptr)) {
         ++selectedLmp;
     }
@@ -50,17 +51,30 @@ void AnimDebug::drawLmpList()
     flushText();
 }
 
+#define MENU_LEVEL_LMP -1
+#define MENU_LEVEL_ANM 0
+#define MENU_LEVEL_VIF 1
+#define MENU_LEVEL_CHG 2
+#define MENU_LEVEL_NUL 3
+
 void AnimDebug::animInput()
 {
-    if ((animDebugFrameSkip == 0) || (animDebugFrameSkip += -1, animDebugFrameSkip != 0)) {
-        if (((convertedControllerInput[0].updatedButtons & DA_PAD_LEFT) != 0) && (-1 < menuLevel)) {
+    if (animDebugFrameSkip == 1) {
+        lmpCleanup(0);
+        setup(0, NULL);
+        animDebugFrameSkip = 0;
+    } else {
+        if (animDebugFrameSkip != 0) {
+            --animDebugFrameSkip;
+        }
+        if (((convertedControllerInput[0].updatedButtons & DA_PAD_LEFT) != 0) && (MENU_LEVEL_LMP < menuLevel)) {
             --menuLevel;
         }
-        if (((convertedControllerInput[0].updatedButtons & DA_PAD_RIGHT) != 0) && (menuLevel < 4)) {
+        if (((convertedControllerInput[0].updatedButtons & DA_PAD_RIGHT) != 0) && (menuLevel < MENU_LEVEL_NUL)) {
             ++menuLevel;
         }
 
-        if (menuLevel == 0) {
+        if (menuLevel == MENU_LEVEL_ANM) {
             // anm list
 
             if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_UP) != 0) && (slectedAnmIdx > 0)) {
@@ -79,7 +93,7 @@ void AnimDebug::animInput()
                     //DAT_ram_0032468c = 10;
                 }
             }
-        } else if (menuLevel == -1) {
+        } else if (menuLevel == MENU_LEVEL_LMP) {
             drawLmpList();
             if ((convertedControllerInput[0].updatedButtons & DA_PAD_CROSS) != 0) {
                 animDebugFrameSkip = 3;
@@ -87,10 +101,10 @@ void AnimDebug::animInput()
             }
         }
 
-        else if (menuLevel == 1) {
-            
-            if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_UP) != 0) && (1 < selectedVifMenuIdx)) {
-                selectedVifMenuIdx += -1;
+        else if (menuLevel == MENU_LEVEL_VIF) {
+
+            if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_UP) != 0) && (selectedVifMenuIdx > 0)) {
+                selectedVifMenuIdx -= 1;
             }
             if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_DOWN) != 0) &&
                 (selectedVifMenuIdx < maxAnimDebugVifIdx - 1)) {
@@ -101,8 +115,8 @@ void AnimDebug::animInput()
                 animDebugVifs[selectedVifMenuIdx].field2_0x8 ^= 1;
             }
             */
-        } else if (menuLevel == 2) {
-            
+        } else if (menuLevel == MENU_LEVEL_CHG) {
+
             if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_UP) != 0) && (0 < selectedChangeMenuIdx)) {
                 --selectedChangeMenuIdx;
             }
@@ -148,9 +162,6 @@ void AnimDebug::animInput()
             camZpos = camZpos - convertedControllerInput[0].r_stick_y;
         }
         */
-    } else {
-        //lmpCleanup(0);
-        setup(0, NULL);
     }
 }
 
@@ -190,32 +201,18 @@ void AnimDebug::animMenuDraw()
     for (; 0xb4 < iVar2; iVar2 += -8) {
         yMenuStartPos += -8;
     }
-    /*
-    if (DAT_ram_003246c4 != 0) {
-        TextureHeader*  tex = nullptr;
-        if (menuLevel == 1) {
-            tex = animDebugVifs[selectedVifMenuIdx].mainTex;
-        }
-        if (menuLevel == 0) {
-            tex = &modelTex;
-        }
-        if (tex != nullptr) {
-            drawTexSprite(tex, 0x276 - tex->width, 0x1b6 - tex->height, 3, 0, 0x808080);
-        }
+
+    if (menuLevel < MENU_LEVEL_NUL) {
+        beginText((Font*)menuFont, 3, 1, 0x80808080);
+        //if ((zoom < FLOAT_ram_0032246c) && (0.25 < zoom)) {
+        displayTextCentered(0x140, 400, "Actual Size");
+        //}
+        displayFormattedText(500, 0x14, "%d tri", numTris);
+        flushText();
     }
-    */
-    /*
-     if (menuLevel < 3) {
-         beginText(pMenuFont, 3, 1, 0x80808080);
-         if ((zoom < FLOAT_ram_0032246c) && (0.25 < zoom)) {
-             displayTextCentered(0x140, 400, "Actual Size");
-         }
-         displayFormattedText(500, 0x14, "%d tri", (long)numTris);
-         flushText();
-     }
-     */
+
     switch (menuLevel) {
-    case 0:
+    case MENU_LEVEL_ANM:
     {
         int aeIdx = 0;
         beginText((Font*)menuFont, 3, 1, 0x80808080);
@@ -223,76 +220,74 @@ void AnimDebug::animMenuDraw()
         int ypos = yMenuStartPos + 0x18;
         while (aeIdx < animDebugAnmsEntries) {
             if ((-0x29 < ypos) && (ypos < 0x1f5)) {
-                if (iVar2 == slectedLmpIdx) {
+                if (aeIdx == slectedAnmIdx) {
                     setTextColor(0x80408080);
                 }
                 displayText(0x14, ypos, animDebugAnms[aeIdx].lmpDirEntry->name);
-                if (iVar2 == slectedLmpIdx) {
+                if (aeIdx == slectedAnmIdx) {
                     setTextColor(0x80808080);
                 }
             }
             ++aeIdx;
             ypos += 0x14;
         }
-        
+
         flushText();
     } break;
-    case 1:
+    case MENU_LEVEL_VIF:
     {
-        int iVar1 = 1;
+        int vifIdx = 0;
         beginText((Font*)menuFont, 3, 1, 0x80808080);
-        if (1 < maxAnimDebugVifIdx) {
-            do {
+
+        while (vifIdx < maxAnimDebugVifIdx) {
+            char uVar6 = '-';
+            //if (animDebugVifs[vifIdx].field2_0x8 != 0) {
+            //    uVar6 = '+';
+            // }
+            int iVar5 = yMenuStartPos + vifIdx * 0x14 + 0x18;
+            if ((-0x29 < iVar5) && (iVar5 < 0x1f5)) {
+                if (vifIdx == selectedVifMenuIdx) {
+                    setTextColor(0x80408080);
+                }
+                displayFormattedText(0x14, yMenuStartPos + (vifIdx + -1) * 0x14 + 0x18, "%c%s\n", uVar6, animDebugVifs[vifIdx].lmpDirEntry->name);
+                if (vifIdx == selectedVifMenuIdx) {
+                    setTextColor(0x80808080);
+                }
+            }
+            ++vifIdx;
+        }
+
+        flushText();
+
+    } break;
+    case MENU_LEVEL_CHG:
+    {
+        int changeId = 0;
+        beginText((Font*)menuFont, 3, 1, 0x80808080);
+        int ypos = 0x18;
+        do {
+            if ((-0x29 < yMenuStartPos + ypos) && (yMenuStartPos + ypos < 0x1f5)) {
                 char uVar6 = '-';
-                //if (animDebugVifs[iVar1].field2_0x8 != 0) {
-                //    uVar6 = '+';
-               // }
-                int iVar5 = yMenuStartPos + iVar1 * 0x14 + 0x18;
-                if ((-0x29 < iVar5) && (iVar5 < 0x1f5)) {
-                    if (iVar1 == selectedVifMenuIdx) {
-                        setTextColor(0x80408080);
-                    }
-                    displayText(0x14, yMenuStartPos + (iVar1 + -1) * 0x14 + 0x18, animDebugVifs[iVar1].lmpDirEntry->name);
-                    // displayFormattedText(0x14, yMenuStartPos + (iVar1 + -1) * 0x14 + 0x18, "%c%s\n", uVar6, animDebugVifs[iVar1].lmpDirEntry->name);
-                    if (iVar1 == selectedVifMenuIdx) {
+                if ((activeChangeItems >> (changeId & 0x1f) & 1U) != 0) {
+                    uVar6 = '+';
+                }
+                if (changeId == selectedChangeMenuIdx) {
+                    setTextColor(0x80408080);
+                } else {
+                    iVar1 = 0; //vifHasChange(animDebugVifs[0].vifData, changeId);
+                    if (iVar1 == 0) {
+                        setTextColor(0x80202020);
+                    } else {
                         setTextColor(0x80808080);
                     }
                 }
-                iVar1 += 1;
-            } while (iVar1 < maxAnimDebugVifIdx);
-        }
+                displayFormattedText(0x14, yMenuStartPos + ypos + -0x14, "%cchange%d\n", uVar6, changeId);
+            }
+            ++changeId;
+            ypos += 0x14;
+        } while (changeId < 0x20);
         flushText();
-        
-    } break;
-    case 2:
-    { /*
-         lVar4 = 0;
-         beginText(pMenuFont, 3, 1, 0x80808080);
-         iVar2 = 0x18;
-         do {
-             uVar3 = (uint)lVar4;
-             if ((-0x29 < yMenuStartPos + iVar2) && (yMenuStartPos + iVar2 < 0x1f5)) {
-                 uVar6 = '-';
-                 if ((activeChangeItems >> (uVar3 & 0x1f) & 1U) != 0) {
-                     uVar6 = '+';
-                 }
-                 if (lVar4 == selectedChangeMenuIdx) {
-                     setTextColor(0x80408080);
-                 } else {
-                     iVar1 = vifHasChange(animDebugVifs[0].vifData, uVar3);
-                     if (iVar1 == 0) {
-                         setTextColor(0x80202020);
-                     } else {
-                         setTextColor(0x80808080);
-                     }
-                 }
-                 displayFormattedText(0x14, yMenuStartPos + iVar2 + -0x14, "%cchange%d\n", uVar6, lVar4);
-             }
-             lVar4 = (long)(int)(uVar3 + 1);
-             iVar2 += 0x14;
-         } while (lVar4 < 0x20);
-         flushText();
-         */
+
     } break;
     }
 }
