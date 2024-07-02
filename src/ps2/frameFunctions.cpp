@@ -11,7 +11,7 @@ void registerFrameFunction(void (*function)(void), int priority, const char* nam
 {
     // Check if this function is already registered.
     for (int i = 0; i < numRegisteredFrameFunctions; ++i) {
-        if (frameFunctions[i + 1].func == function) {
+        if (frameFunctions[i].func == function) {
             return;
         }
     }
@@ -43,5 +43,4 @@ void registerFrameFunction(void (*function)(void), int priority, const char* nam
     }
 
     ++numRegisteredFrameFunctions;
-    return;
 }

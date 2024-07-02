@@ -158,6 +158,7 @@ void freeLmpData(u8* unalignedData)
                     //        FUN_ram_0013b4e0((short*)lmpDir->entries[entryNum].payload);
                 }
             }
+            ++entryNum;
         }
     }
 
