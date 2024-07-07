@@ -16,7 +16,7 @@ namespace AnimDebug
     {
         LmpDirEntry* lmpDirEntry;
         VifData* vifData;
-        int unk;
+        int selected;
         TextureHeader* mainTex;
     };
 

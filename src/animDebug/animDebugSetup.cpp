@@ -4,11 +4,14 @@
 #include "../ps2/state.h"
 #include "../ps2/texture.h"
 
+#include "../vector.h"
+
 #include <string.h>
 #include <cstdio>
 
 short AnimDebug::rotXAxis = 0x4000;
 float AnimDebug::zoom = 0.26;
+
 float AnimDebug::camXpos = 0.0;
 float AnimDebug::camYpos = 0.0;
 float AnimDebug::camZpos = 0.0;
@@ -136,7 +139,7 @@ void AnimDebug::setup(int argc, char** argv)
     // Element 0 is the largest VIF
     while ((lmpDirEntry = searchLmpForNthFileWithExt(npcLmp, "vif", entryNum)) != nullptr) {
         if (lmpDirEntry->len > prevVifLen) {
-            animDebugVifs[maxAnimDebugVifIdx].unk = 0;
+            animDebugVifs[maxAnimDebugVifIdx].selected = 0;
             animDebugVifs[maxAnimDebugVifIdx].vifData = (VifData*)lmpDirEntry->payload;
             animDebugVifs[maxAnimDebugVifIdx].lmpDirEntry = lmpDirEntry;
             prevVifLen = lmpDirEntry->len;
@@ -148,7 +151,7 @@ void AnimDebug::setup(int argc, char** argv)
     while (entryNum < maxAnimDebugVifsEntries && (lmpDirEntry = searchLmpForNthFileWithExt(npcLmp, "vif", entryNum)) != nullptr) {
         VifData* pVifData = (VifData*)lmpDirEntry->payload;
         if (pVifData != animDebugVifs[0].vifData) {
-            animDebugVifs[maxAnimDebugVifIdx].unk = 0;
+            animDebugVifs[maxAnimDebugVifIdx].selected = 0;
             animDebugVifs[maxAnimDebugVifIdx].lmpDirEntry = lmpDirEntry;
             animDebugVifs[maxAnimDebugVifIdx].vifData = pVifData;
             ++maxAnimDebugVifIdx;
