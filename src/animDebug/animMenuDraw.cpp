@@ -113,11 +113,10 @@ void AnimDebug::animInput()
                 (selectedVifMenuIdx < maxAnimDebugVifIdx - 1)) {
                 selectedVifMenuIdx += 1;
             }
-            /*
             if ((convertedControllerInput[0].updatedButtons & DA_PAD_CIRCLE) != 0) {
-                animDebugVifs[selectedVifMenuIdx].field2_0x8 ^= 1;
+                animDebugVifs[selectedVifMenuIdx].selected ^= 1;
             }
-            */
+            
         } else if (menuLevel == MENU_LEVEL_CHG) {
 
             if (((convertedControllerInput[0].updatedButtons2 & DA_PAD_UP) != 0) && (0 < selectedChangeMenuIdx)) {
@@ -243,16 +242,16 @@ void AnimDebug::animMenuDraw()
         beginText((Font*)menuFont, 3, 1, 0x80808080);
 
         while (vifIdx < maxAnimDebugVifIdx) {
-            char uVar6 = '-';
-            //if (animDebugVifs[vifIdx].field2_0x8 != 0) {
-            //    uVar6 = '+';
-            // }
+            char prefix = '-';
+            if (animDebugVifs[vifIdx].selected != 0) {
+                prefix = '+';
+            }
             int iVar5 = yMenuStartPos + vifIdx * 0x14 + 0x18;
             if ((-0x29 < iVar5) && (iVar5 < 0x1f5)) {
                 if (vifIdx == selectedVifMenuIdx) {
                     setTextColor(0x80408080);
                 }
-                displayFormattedText(0x14, yMenuStartPos + (vifIdx + -1) * 0x14 + 0x18, "%c%s\n", uVar6, animDebugVifs[vifIdx].lmpDirEntry->name);
+                displayFormattedText(0x14, yMenuStartPos + (vifIdx + -1) * 0x14 + 0x18, "%c%s\n", prefix, animDebugVifs[vifIdx].lmpDirEntry->name);
                 if (vifIdx == selectedVifMenuIdx) {
                     setTextColor(0x80808080);
                 }
@@ -270,9 +269,9 @@ void AnimDebug::animMenuDraw()
         int ypos = 0x18;
         do {
             if ((-0x29 < yMenuStartPos + ypos) && (yMenuStartPos + ypos < 0x1f5)) {
-                char uVar6 = '-';
+                char prefix = '-';
                 if ((activeChangeItems >> (changeId & 0x1f) & 1U) != 0) {
-                    uVar6 = '+';
+                    prefix = '+';
                 }
                 if (changeId == selectedChangeMenuIdx) {
                     setTextColor(0x80408080);
@@ -284,7 +283,7 @@ void AnimDebug::animMenuDraw()
                         setTextColor(0x80808080);
                     }
                 }
-                displayFormattedText(0x14, yMenuStartPos + ypos + -0x14, "%cchange%d\n", uVar6, changeId);
+                displayFormattedText(0x14, yMenuStartPos + ypos + -0x14, "%cchange%d\n", prefix, changeId);
             }
             ++changeId;
             ypos += 0x14;
@@ -334,23 +333,19 @@ void AnimDebug::animFrame()
          }
      */
 
-        int iVar7 = getNumTrisOfSelectedVifs(vifData, meshMask);
-
-        int iVar9 = 1;
+        int vifNo = 1;
         if (1 < maxAnimDebugVifIdx) {
-            VifData** ppVVar8 = &animDebugVifs[1].vifData;
-
             do {
-                if (animDebugVifs[iVar9].selected) {
-                    int iVar4 = getNumTrisOfSelectedVifs(animDebugVifs[iVar9].vifData, 0xffffffffffffffff);
-                    iVar7 += iVar4;
+                if (animDebugVifs[vifNo].selected) {
+                    vifNo += getNumTrisOfSelectedVifs(animDebugVifs[vifNo].vifData, 0xffffffffffffffff);
                 }
-                iVar9 += 1;
+                vifNo += 1;
 
-            } while (iVar9 < maxAnimDebugVifIdx);
+            } while (vifNo < maxAnimDebugVifIdx);
         }
 
-        numTris = iVar7;
+        numTris = getNumTrisOfSelectedVifs(vifData, meshMask);
+;
         /*
             local_510.x = camXPos;
             local_510.y = camYPos;
