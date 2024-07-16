@@ -65,3 +65,5 @@ void endFrame();
 
 void disableDisplay();
 void enableDisplay();
+
+void bootstrapVIFs();

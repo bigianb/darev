@@ -32,6 +32,8 @@ loadModules(void)
     }
 }
 
+
+
 int main(int argc, char* argv[])
 {
     loadModules();
@@ -50,9 +52,8 @@ int main(int argc, char* argv[])
     initDMA();
     traceln("DMA init done");
 
-/*
     bootstrapVIFs();
-*/
+
     WR_EE_T0_MODE(0x83);      // H-blank count, not interrupt
     WR_EE_T0_COUNT(0);
     WR_EE_T1_MODE(0x9f);      // H-blank clock, gate on Vblank, reset on rising edge

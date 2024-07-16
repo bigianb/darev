@@ -6,6 +6,7 @@
 #include "display.h"
 #include "state.h"
 #include "dlist.h"
+#include "elfData.h"
 
 enum DmaChannel
 {
@@ -50,6 +51,27 @@ void dmaSend(DmaChannel chan, u32* pData)
     *(vu32*)dma_qwc[chan] = 0;
     *(vu32*)dma_chcr[chan] = (*(vu32*)dma_chcr[chan] & 0xfffffff3) | 0x105;
     return;
+}
+
+int syncDma(DmaChannel chan, int mode, int timeout)
+{
+    vu32* chcr = (vu32*)dma_chcr[chan];
+    if (mode == 1) {
+        return *chcr >> 8 & 1;
+    }
+    if (timeout == 0) {
+        timeout = 0x1000000;
+    }
+    while ((*chcr & 0x100) != 0) {
+        if (timeout < 0) {
+            traceln("sync timeout");
+            if ((*chcr >> 8 & 1) != 0) {
+                *chcr = *chcr & 0xfffffeff;
+            }
+        }
+        --timeout;
+    }
+    return 0;
 }
 
 int vblankHandlerId;
@@ -1328,4 +1350,27 @@ void endFrame()
     FlushCache(WRITEBACK_DCACHE);
     dmaSend(DmaChannel::GIF, frameDMAProg);
     sceGsSyncPath(0, 0);
+}
+
+void bootstrapVIFs()
+{  
+    dmaSend(DmaChannel::VIF1, (u32 *)vu1Data);
+    syncDma(DmaChannel::VIF1, 0, 0);
+
+    dmaSend(DmaChannel::VIF0, (u32 *)vu0Data);
+    syncDma(DmaChannel::VIF0, 0, 0);
+    
+    FlushCache(0);
+    sceGsSyncPath(0,0);
+    /*
+    REG_VIF0_ERR = 2;   10003820
+    REG_VIF1_ERR = 2;   10003c20
+
+    VU1_3fb4 = 0x30ae4000;
+    DAT_ram_1100ffb8 = 0x30be4000;
+    DAT_ram_1100ff60 = 0x8000;
+    DAT_ram_1100ff64 = 0;
+    DAT_ram_1100ff68 = 0;
+    DAT_ram_1100ff6c = 0;
+    */
 }

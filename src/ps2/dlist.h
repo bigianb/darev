@@ -26,5 +26,3 @@ void waitDMASema();
 
 int sceGsSyncPath(int mode, unsigned short timeout);
 
-
-

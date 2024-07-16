@@ -34,8 +34,6 @@ typedef struct
     u32 p_align;  // Alignment. The address of 0x08 and 0x0C must fit this alignment. 0=no alignment
 } ELF_PROGRAM_HDR;
 
-// 0x0023a970 -> 0x00245840
-
 struct ElfFile
 {
     u32 startAddr;
@@ -44,9 +42,13 @@ struct ElfFile
 };
 
 u8* menuFont = nullptr;
+u8* vu0Data = nullptr;
+u8* vu1Data = nullptr;
 
 ElfFile elfFiles[] = {
-    {0x0023a970, 0x00245840, (void**)&menuFont}
+    {0x0023a970, 0x00245840, (void**)&menuFont},
+    {0x0022f530, 0x0022f7b0, (void**)&vu0Data},
+    {0x0022f7b0, 0x00233500, (void**)&vu1Data}
     };
 
 void findFile(ElfFile& ef, ELF_HEADER* elfHeader, ELF_PROGRAM_HDR* ph)
