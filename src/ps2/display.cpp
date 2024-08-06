@@ -1,6 +1,7 @@
 
 #include <kernel.h>
 #include <ee_regs.h>
+#include <vif_registers.h>
 
 #include "trace.h"
 #include "display.h"
@@ -1352,6 +1353,8 @@ void endFrame()
     sceGsSyncPath(0, 0);
 }
 
+#define W_VU1_MEM(x, y) *(vu32*)(VU1_MICROMEM1_START+x) = y
+
 void bootstrapVIFs()
 {  
     dmaSend(DmaChannel::VIF1, (u32 *)vu1Data);
@@ -1362,15 +1365,15 @@ void bootstrapVIFs()
     
     FlushCache(0);
     sceGsSyncPath(0,0);
-    /*
-    REG_VIF0_ERR = 2;   10003820
-    REG_VIF1_ERR = 2;   10003c20
 
-    VU1_3fb4 = 0x30ae4000;
-    DAT_ram_1100ffb8 = 0x30be4000;
-    DAT_ram_1100ff60 = 0x8000;
-    DAT_ram_1100ff64 = 0;
-    DAT_ram_1100ff68 = 0;
-    DAT_ram_1100ff6c = 0;
-    */
+    WR_EE_VIF0_ERR(2);
+    WR_EE_VIF1_ERR(2);
+
+    W_VU1_MEM(0x3f60, 0x8000);
+    W_VU1_MEM(0x3f64, 0);
+    W_VU1_MEM(0x3f68, 0);
+    W_VU1_MEM(0x3f6c, 0);
+
+    W_VU1_MEM(0x3fb4, 0x30ae4000);
+    W_VU1_MEM(0x3fb8, 0x30ae4000);
 }

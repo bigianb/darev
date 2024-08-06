@@ -25,6 +25,7 @@ enum GSReg
     TEXFLUSH = 0x3f,
     SCISSOR_1 = 0x40,
     ALPHA_1 = 0x42,
+    ALPHA_2 = 0x43,
     DTHE = 0x45,
     COLCLAMP = 0x46,
     TEST_1 = 0x47,

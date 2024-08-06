@@ -5,8 +5,10 @@
 #include "../ps2/pad.h"
 #include "../ps2/text.h"
 #include "../ps2/vifMesh.h"
+#include "../ps2/model.h"
 
 #include "../vector.h"
+#include "../matrix.h"
 
 int AnimDebug::animDebugFrameSkip = 0;
 int AnimDebug::slectedAnmIdx = 0;
@@ -297,9 +299,9 @@ void AnimDebug::animMenuDraw()
 void AnimDebug::animFrame()
 {
     if (animDebugFrameSkip == 0) {
-        Vec3 local_510(0.0f, 0.0f, 0.0f);
+        Vec3 vec3(0.0f, 0.0f, 0.0f);
 
-        //FUN_ram_001368d0(1.0, &AnimData::animStateData, &local_510);
+        //FUN_ram_001368d0(1.0, &AnimData::animStateData, &vec3);
 
         VifData* vifData = animDebugVifs[0].vifData;
         u64 meshMask = getMeshMask(animDebugVifs[0].vifData, activeChangeItems);
@@ -346,24 +348,18 @@ void AnimDebug::animFrame()
 
         numTris = getNumTrisOfSelectedVifs(vifData, meshMask);
 ;
-        /*
-            local_510.x = camXPos;
-            local_510.y = camYPos;
-            local_510.z = camZpos;
+        Vec3 camPos(camXpos, camYpos, camZpos);
 
-            makeIdentityMtx_3x4(&mStack_100);
-            translate(camXPos,camYPos,camZpos,&mStack_100);
-            DAT_ram_00324604 = 1;
-            _auStack_d0 = CONCAT44(local_510.y,local_510.x);
-            puVar1 = auStack_d0 + 7;
-            uVar3 = (uint)puVar1 & 7;
-            *(ulong *)(puVar1 + -uVar3) =
-                 *(ulong *)(puVar1 + -uVar3) & -1L << (uVar3 + 1) * 8 | _auStack_d0 >> (7 - uVar3) * 8;
-            uStack_c9._1_4_ = local_510.z;
-                            // anim state at 0x4559e8
-                            //
-            drawAnimatedModel(vifData,&modelTex,1,(Vec3 *)auStack_d0,&mStack_100,
-                              (animStateData *)(iVar4 + 0x59e8),meshMask,0);
+        Matrix_3x4 modelMatrix;
+        makeIdentityMtx_3x4(&modelMatrix);
+        translateMtx3x4(camXpos, camYpos, camZpos, &modelMatrix);
+        vif_ITOP = 1;
+
+
+        // anim state at 0x4559e8
+        //
+        drawAnimatedModel(vifData, &modelTex, 1, &camPos, &modelMatrix, nullptr /*&animStateData*/, meshMask, 0);
+/*
             FUN_ram_0013fa70();
             if (('\0' < *(char *)(iVar4 + 0x59ec)) &&
                ((float)((animStateData *)(iVar4 + 0x59e8))->stateArray[*(char *)(iVar4 + 0x59ec) + -1].

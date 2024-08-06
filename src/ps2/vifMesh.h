@@ -11,11 +11,9 @@ struct VifData
     char numChanges;
     char pad[3];
     u16 pad2;
-    u8  field_0x18;
-    char pad3[3];
-    u8 field_1c;
-    char pad4[3];
-    char field_0x20;
+    u32 alphaRegLo;
+    u32 alphaRegHi;
+    char alpha2FixVal;
     u8 changeDefsOffset;
 
 };
