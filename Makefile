@@ -27,7 +27,7 @@ else
   EE_OPTFLAGS = -O2
 endif
 
-MAIN_OBJS = 
+MAIN_OBJS = 	matrix
 PS2_OBJS =	display dlist draw elfData filesys font frameFunctions \
 		GIFTag gsAllocator \
 		levelLoop lump main menu model pad scene showLanguageMenu state \

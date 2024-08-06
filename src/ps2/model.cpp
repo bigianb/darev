@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "model.h"
 #include "../vector.h"
 #include "../matrix.h"
@@ -12,6 +14,123 @@ u8 modelAphaFix = 0;
 Matrix_4x4 camXformMat;
 
 class AnimStateData;
+
+void setVifProjMatrix(u64 **pDmaTailHead, Matrix_4x4 *matrix,Vec3 *vec,VifData *vifData,
+                     char alphaFix)
+{  
+    u64* puVar6 = *pDmaTailHead;
+    u32 *pDma = (u32 *)(puVar6 + 1);
+    pDmaTailHead[1] = pDmaTailHead[0];
+    pDmaTailHead[0] = (u64*)pDma;
+
+    int idx=0;
+    pDma[idx++] = 0x11000000;     // FLUSH
+
+
+    bool hasAlpha2 = (vifData->flags & 0x10) == 0x10;
+
+    // Direct 5 or 6 qwords
+    pDma[idx++] = hasAlpha2 ?  0x50000006 : 0x50000005;
+    pDmaTailHead[2] = (u64*)&pDma[1];
+    pDma[idx++] = 0x8000;
+    pDma[idx++] = 0x10000000;
+    pDma[idx++] = 0xe; // A+D Reg
+    pDma[idx++] = 0;
+
+    pDma[idx++] = 0; 
+    pDma[idx++] = 0;    
+    pDma[idx++] = GSReg::TEXFLUSH; 
+    pDma[idx++] = 0;  
+
+    pDma[idx++] = 0;
+    pDma[idx++] = 0;   
+    pDma[idx++] = GSReg::TEX0_1; 
+    pDma[idx++] = 0;   
+
+    if (alphaFix == 0) {
+        pDma[idx++] = vifData->alphaRegLo;
+        pDma[idx++] = vifData->alphaRegHi;
+    } else {
+        pDma[idx++] = 0x64;
+        pDma[idx++] = 0x80 - alphaFix;
+    }
+    pDma[idx++] = GSReg::ALPHA_1;
+    pDma[idx++] = 0;
+
+    if ((vifData->flags & 0x10) != 0) {
+        pDma[idx++] = 0x64;
+        pDma[idx++] = vifData->alpha2FixVal;
+        pDma[idx++] = GSReg::ALPHA_2;
+        pDma[idx++] = 0;
+    }
+
+    *pDmaTailHead = (u64*)&pDma[idx];
+  
+    pDma[idx++] = 0x507f5;
+    pDma[idx++] = 0;
+    pDma[idx++] = GSReg::TEST_1;
+    pDma[idx++] = 0;
+
+    // End of Direct data
+
+    // UNPACK addr = 0, unsigned, add VIF1_TOPS, num = 4
+    // m = 0, vn = 3, vl =0 .. V4-32
+    pDma[idx++] = 0x6c04c000;
+
+
+    float* pMatrixDest = (float*)&pDma[idx];
+    memcpy(pMatrixDest, matrix->cell, sizeof(float) * 16);
+
+    idx += 16;
+
+  //pDma = pDmaTailHead[2];         GIF tag to write in length
+  //*pDma = (long)(((int)puVar6 + (0x10 - (int)pDma) >> 3) + -2 >> 1) | uVar5;    // write GIF tag length
+ 
+    int uVar5 = vif_ITOP;
+    pDma[idx++] = uVar5 | 0x04000000;  // ITOP
+    
+    pDma[idx++] = 0x14000002;   // MSCAL 02 - set proj matrix
+
+
+/*
+    *pDmaTailHead = (ulong *)((int)puVar6 + 0x5c);
+  puVar1 = (undefined *)((int)&vec->y + 3);
+  uVar2 = (uint)puVar1 & 7;
+  uVar3 = (uint)vec & 7;
+  auStack_30._0_8_ =
+       (*(long *)(puVar1 + -uVar2) << (7 - uVar2) * 8 |
+       (uVar5 | 0x4000000) & 0xffffffffffffffffU >> (uVar2 + 1) * 8) & -1L << (8 - uVar3) * 8 |
+       *(ulong *)((int)vec - uVar3) >> uVar3 * 8;
+  fVar7 = vec->z;
+  puVar1 = (undefined *)((int)&auStack_30.y + 3);
+
+  uVar2 = (uint)puVar1 & 7;
+  puVar6 = (ulong *)(puVar1 + -uVar2);
+  *puVar6 = *puVar6 & -1L << (uVar2 + 1) * 8 | (ulong)auStack_30._0_8_ >> (7 - uVar2) * 8;
+  auStack_30.z = fVar7;
+  FUN_ram_00106ee8((uint32_t **)pDmaTailHead, &auStack_30);
+
+  puVar6 = *pDmaTailHead;
+*/
+
+/* write 0 padding until qword boundary. 
+  if (((uint)puVar6 & 0xf) == 0) {
+    pDma = pDmaTailHead[1];
+  }
+  else {
+    do {
+      *(undefined *)puVar6 = 0;
+      puVar6 = (ulong *)((int)puVar6 + 1);
+    } while (((uint)puVar6 & 0xf) != 0);
+    pDma = pDmaTailHead[1];
+  }
+  */
+  *pDmaTailHead = puVar6;
+  // write the dma tag length (cnt)
+  int numqwc = ((int)puVar6 - (int)pDma) / 8 - 1;
+  *pDma = numqwc | 0x10000000;
+  return;
+}
 
 DlistNode *
 drawAnimatedModel(VifData *pVif, TextureHeader *pTex, int dmaSlot, Vec3 *pos, Matrix_3x4 *mtx_3x4,
@@ -204,141 +323,7 @@ drawAnimatedModel(VifData *pVif, TextureHeader *pTex, int dmaSlot, Vec3 *pos, Ma
 
 
 
-void setVifProjMatrix(u64 **pDmaTailHead, Matrix_4x4 *matrix,Vec3 *vec,VifData *vifData,
-                     char alphaFix)
-{  
-    u64* puVar6 = *pDmaTailHead;
-    u32 *pDma = (u32 *)(puVar6 + 1);
-    pDmaTailHead[1] = pDmaTailHead[0];
-    pDmaTailHead[0] = (u64*)pDma;
 
-    int idx=0;
-    pDma[idx++] = 0x11000000;     // FLUSH
-
-
-    bool hasAlpha2 = (vifData->flags & 0x10) == 0x10;
-
-    // Direct 5 or 6 qwords
-    pDma[idx++] = hasAlpha2 ?  0x50000006 : 0x50000005;
-    pDmaTailHead[2] = (u64*)&pDma[1];
-    pDma[idx++] = 0x8000;
-    pDma[idx++] = 0x10000000;
-    pDma[idx++] = 0xe; // A+D Reg
-    pDma[idx++] = 0;
-
-    pDma[idx++] = 0; 
-    pDma[idx++] = 0;    
-    pDma[idx++] = GSReg::TEXFLUSH; 
-    pDma[idx++] = 0;  
-
-    pDma[idx++] = 0;
-    pDma[idx++] = 0;   
-    pDma[idx++] = GSReg::TEX0_1; 
-    pDma[idx++] = 0;   
-
-    if (alphaFix == 0) {
-        pDma[idx++] = vifData->alphaRegLo;
-        pDma[idx++] = vifData->alphaRegHi;
-    } else {
-        pDma[idx++] = 0x64;
-        pDma[idx++] = 0x80 - alphaFix;
-    }
-    pDma[idx++] = GSReg::ALPHA_1;
-    pDma[idx++] = 0;
-
-    if ((vifData->flags & 0x10) != 0) {
-        pDma[idx++] = 0x64;
-        pDma[idx++] = vifData->alpha2FixVal;
-        pDma[idx++] = GSReg::ALPHA_2;
-        pDma[idx++] = 0;
-    }
-
-    *pDmaTailHead = (u64*)&pDma[idx];
-  
-    pDma[idx++] = 0x507f5;
-    pDma[idx++] = 0;
-    pDma[idx++] = GSReg::TEST_1;
-    pDma[idx++] = 0;
-
-    // End of Direct data
-
-    // UNPACK addr = 0, unsigned, add VIF1_TOPS, num = 4
-    // m = 0, vn = 3, vl =0 .. V4-32
-    pDma[idx++] = 0x6c04c000;
-
-
-    float* pMatrixDest = (float*)&pDma[idx];
-    
-    pMatrixDest[0] = matrix->m00;
-    pMatrixDest[1] = matrix->m10;
-    pMatrixDest[2] = matrix->m20;
-    pMatrixDest[3] = matrix->m30;
-
-    pMatrixDest[4] = matrix->m01;
-    pMatrixDest[5] = matrix->m11;
-    pMatrixDest[6] = matrix->m21;
-    pMatrixDest[7] = matrix->m31;
-
-    pMatrixDest[8] = matrix->m02;
-    pMatrixDest[9] = matrix->m12;
-    pMatrixDest[10] = matrix->m22;
-    pMatrixDest[11] = matrix->m32;
-
-    pMatrixDest[12] = matrix->m03;
-    pMatrixDest[13] = matrix->m13;
-    pMatrixDest[14] = matrix->m23;
-    pMatrixDest[15] = matrix->m33;
-
-    idx += 16;
-
-  //pDma = pDmaTailHead[2];         GIF tag to write in length
-  //*pDma = (long)(((int)puVar6 + (0x10 - (int)pDma) >> 3) + -2 >> 1) | uVar5;    // write GIF tag length
- 
-    int uVar5 = vif_ITOP;
-    pDma[idx++] = uVar5 | 0x04000000;  // ITOP
-    
-    pDma[idx++] = 0x14000002;   // MSCAL 02 - set proj matrix
-
-
-/*
-    *pDmaTailHead = (ulong *)((int)puVar6 + 0x5c);
-  puVar1 = (undefined *)((int)&vec->y + 3);
-  uVar2 = (uint)puVar1 & 7;
-  uVar3 = (uint)vec & 7;
-  auStack_30._0_8_ =
-       (*(long *)(puVar1 + -uVar2) << (7 - uVar2) * 8 |
-       (uVar5 | 0x4000000) & 0xffffffffffffffffU >> (uVar2 + 1) * 8) & -1L << (8 - uVar3) * 8 |
-       *(ulong *)((int)vec - uVar3) >> uVar3 * 8;
-  fVar7 = vec->z;
-  puVar1 = (undefined *)((int)&auStack_30.y + 3);
-
-  uVar2 = (uint)puVar1 & 7;
-  puVar6 = (ulong *)(puVar1 + -uVar2);
-  *puVar6 = *puVar6 & -1L << (uVar2 + 1) * 8 | (ulong)auStack_30._0_8_ >> (7 - uVar2) * 8;
-  auStack_30.z = fVar7;
-  FUN_ram_00106ee8((uint32_t **)pDmaTailHead, &auStack_30);
-
-  puVar6 = *pDmaTailHead;
-*/
-
-/* write 0 padding until qword boundary. 
-  if (((uint)puVar6 & 0xf) == 0) {
-    pDma = pDmaTailHead[1];
-  }
-  else {
-    do {
-      *(undefined *)puVar6 = 0;
-      puVar6 = (ulong *)((int)puVar6 + 1);
-    } while (((uint)puVar6 & 0xf) != 0);
-    pDma = pDmaTailHead[1];
-  }
-  */
-  *pDmaTailHead = puVar6;
-  // write the dma tag length (cnt)
-  int numqwc = ((int)puVar6 - (int)pDma) / 8 - 1;
-  *pDma = numqwc | 0x10000000;
-  return;
-}
 
 
 
