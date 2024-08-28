@@ -24,7 +24,7 @@ u64 getMeshMask(VifData* vifData, u32 activeChangeItems)
     if (((vifData->flags & 2) != 0) && (activeChangeItems != 0)) {
         u64* p64 = (u64*)((u8*)vifData + vifData->changeDefsOffset * 0x10);
         do {
-            if (activeChangeItems & 1 != 0) {
+            if ((activeChangeItems & 1) != 0) {
                 meshMask |= (p64[0] & ~p64[1]);
             }
             activeChangeItems >>= 1;

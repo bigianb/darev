@@ -15,23 +15,32 @@ Matrix_4x4 camXformMat;
 
 class AnimStateData;
 
-void setVifProjMatrix(u64 **pDmaTailHead, Matrix_4x4 *matrix,Vec3 *vec,VifData *vifData,
-                     char alphaFix)
-{  
-    u64* puVar6 = *pDmaTailHead;
-    u32 *pDma = (u32 *)(puVar6 + 1);
-    pDmaTailHead[1] = pDmaTailHead[0];
-    pDmaTailHead[0] = (u64*)pDma;
+struct DmaPacketPtrs
+{
+  u64* tail;      // where we're writing
+  u64* dmaHead;   // The most recent DMA tag
+  u64* gifHead;   // The most recent DIRECT tag
+};
 
+void setVifProjMatrix(DmaPacketPtrs *pDmaPacketPtrs, Matrix_4x4 *matrix,Vec3 *vec,VifData *vifData, char alphaFix)
+{  
+
+    // u64 DMATag
+    // u32 VIFcode0
+
+    pDmaPacketPtrs->dmaHead = pDmaPacketPtrs->tail;
+    pDmaPacketPtrs->tail += 1;
+
+    u32 *pDma = (u32 *)pDmaPacketPtrs->tail;
     int idx=0;
     pDma[idx++] = 0x11000000;     // FLUSH
-
 
     bool hasAlpha2 = (vifData->flags & 0x10) == 0x10;
 
     // Direct 5 or 6 qwords
+    pDmaPacketPtrs->gifHead = (u64*)&pDma[idx];
     pDma[idx++] = hasAlpha2 ?  0x50000006 : 0x50000005;
-    pDmaTailHead[2] = (u64*)&pDma[1];
+    
     pDma[idx++] = 0x8000;
     pDma[idx++] = 0x10000000;
     pDma[idx++] = 0xe; // A+D Reg
@@ -57,14 +66,14 @@ void setVifProjMatrix(u64 **pDmaTailHead, Matrix_4x4 *matrix,Vec3 *vec,VifData *
     pDma[idx++] = GSReg::ALPHA_1;
     pDma[idx++] = 0;
 
-    if ((vifData->flags & 0x10) != 0) {
+    if ((vifData->flags & VifFlags::HAS_ALPHA2) != 0) {
         pDma[idx++] = 0x64;
         pDma[idx++] = vifData->alpha2FixVal;
         pDma[idx++] = GSReg::ALPHA_2;
         pDma[idx++] = 0;
     }
 
-    *pDmaTailHead = (u64*)&pDma[idx];
+    pDmaPacketPtrs->tail = (u64*)&pDma[idx];
   
     pDma[idx++] = 0x507f5;
     pDma[idx++] = 0;
@@ -77,18 +86,11 @@ void setVifProjMatrix(u64 **pDmaTailHead, Matrix_4x4 *matrix,Vec3 *vec,VifData *
     // m = 0, vn = 3, vl =0 .. V4-32
     pDma[idx++] = 0x6c04c000;
 
-
     float* pMatrixDest = (float*)&pDma[idx];
     memcpy(pMatrixDest, matrix->cell, sizeof(float) * 16);
-
     idx += 16;
 
-  //pDma = pDmaTailHead[2];         GIF tag to write in length
-  //*pDma = (long)(((int)puVar6 + (0x10 - (int)pDma) >> 3) + -2 >> 1) | uVar5;    // write GIF tag length
- 
-    int uVar5 = vif_ITOP;
-    pDma[idx++] = uVar5 | 0x04000000;  // ITOP
-    
+    pDma[idx++] = vif_ITOP | 0x04000000;  // ITOP    
     pDma[idx++] = 0x14000002;   // MSCAL 02 - set proj matrix
 
 
@@ -113,30 +115,23 @@ void setVifProjMatrix(u64 **pDmaTailHead, Matrix_4x4 *matrix,Vec3 *vec,VifData *
   puVar6 = *pDmaTailHead;
 */
 
-/* write 0 padding until qword boundary. 
-  if (((uint)puVar6 & 0xf) == 0) {
-    pDma = pDmaTailHead[1];
-  }
-  else {
-    do {
-      *(undefined *)puVar6 = 0;
-      puVar6 = (ulong *)((int)puVar6 + 1);
-    } while (((uint)puVar6 & 0xf) != 0);
-    pDma = pDmaTailHead[1];
-  }
-  */
-  *pDmaTailHead = puVar6;
-  // write the dma tag length (cnt)
-  int numqwc = ((int)puVar6 - (int)pDma) / 8 - 1;
-  *pDma = numqwc | 0x10000000;
-  return;
+    // write 0 padding until qword boundary.
+    u32* pTail = &pDma[idx];
+    while ((u32)pTail & 0x0f){
+        *pTail++ = 0;
+    }
+
+    pDmaPacketPtrs->tail = (u64*)pTail;
+    // write the dma tag length (cnt)
+    int numqwc = pDmaPacketPtrs->tail - pDmaPacketPtrs->dmaHead - 1;
+    *(u32*)pDmaPacketPtrs->dmaHead = numqwc | 0x10000000;
 }
 
 DlistNode *
 drawAnimatedModel(VifData *pVif, TextureHeader *pTex, int dmaSlot, Vec3 *pos, Matrix_3x4 *mtx_3x4,
                  AnimStateData *animData, u64 meshDrawMask, DlistNode* headNode)
 {  
-    u64 *dmaTailHead [3];
+    DmaPacketPtrs dmaPacketPtrs;
 
 /*
     puVar1 = (undefined *)((int)&pos->y + 3);
@@ -154,11 +149,11 @@ drawAnimatedModel(VifData *pVif, TextureHeader *pTex, int dmaSlot, Vec3 *pos, Ma
     *puVar15 = *puVar15 & -1L << (uVar2 + 1) * 8 | (ulong)localPos._0_8_ >> (7 - uVar2) * 8;
     localPos.z = fVar4;
 */
-    dmaTailHead[0] = curDMABufTail;
+    dmaPacketPtrs.tail = curDMABufTail;
     
     Matrix_4x4 projMtx;
     matrixMul3x4_4x4(&projMtx, mtx_3x4, &camXformMat);
-    setVifProjMatrix(dmaTailHead, &projMtx, pos, pVif, modelAphaFix);
+    setVifProjMatrix(&dmaPacketPtrs, &projMtx, pos, pVif, modelAphaFix);
   
 /*
   puVar15 = dmaTailHead[0];
@@ -209,57 +204,65 @@ drawAnimatedModel(VifData *pVif, TextureHeader *pTex, int dmaSlot, Vec3 *pos, Ma
     *(uint *)puVar12 = *(uint *)puVar12 | (int)dmaTailHead[0] + (-4 - (int)puVar12) >> 4;
     *puVar15 = (long)(((int)dmaTailHead[0] - (int)puVar15 >> 3) + -2 >> 1) | 0x10000000;
   }
+  */
+ u64 mscal_val;
   if (animData == NULL) {
-    uVar10 = 0x1400001e;
+    mscal_val = 0x1400001e;
   }
   else {
-    if (param_8 == 0) {
-      writeAnimVifTags((byte **)dmaTailHead,animData);
+    if (headNode == nullptr) {
+      //writeAnimVifTags((byte **)dmaTailHead, animData);
     }
-    uVar10 = 0x1400000c;
+    mscal_val = 0x1400000c;
   }
-  *dmaTailHead[0] = 0x10000000;
-  puVar15 = dmaTailHead[0] + 2;
-  dmaTailHead[0][1] = uVar10;
-  uVar8 = pVif->flags;
-  dmaTailHead[1] = dmaTailHead[0];
-  if (((uVar8 & 0x20) != 0) && (0 < DAT_ram_00324610)) {
-    dmaTailHead[0] = puVar15;
-    FUN_ram_0013c4b8(dmaTailHead,pVif,'\x01',(int)PTR_DAT_ram_00238938_ram_0032460c,DAT_ram_00324610
-                    );
-    uVar8 = pVif->flags;
+
+    dmaPacketPtrs.tail[0] = 0x10000000;
+    dmaPacketPtrs.tail[1] = mscal_val;
+    dmaPacketPtrs.dmaHead = dmaPacketPtrs.tail;
+    dmaPacketPtrs.tail += 2;
+
+    /*
+    if (((pVif->flags & VifFlags::FLAG_20) != 0) && (0 < DAT_ram_00324610)) {
+        FUN_ram_0013c4b8(dmaTailHead, pVif, '\x01', (int)PTR_DAT_ram_00238938_ram_0032460c, DAT_ram_00324610);
+    }
+    */
+
+    /*
+    if ((pVif->flags & VifFlags::FLAG_40) != 0) {
+        FUN_ram_0013d000(pVif, animData, mtx_3x4);
+    }
+    */
+
+/*
+    uVar2 = animModelDrawFlags;
+    lVar14 = (long)pVif->numChanges;
+    lVar11 = (long)*(int *)&pVif->field_0x28;
+    lVar13 = 0;
+    uVar10 = meshDrawMask & ~(1L << lVar14);
     puVar15 = dmaTailHead[0];
-  }
-  dmaTailHead[0] = puVar15;
-  if ((uVar8 & 0x40) != 0) {
-    FUN_ram_0013d000(pVif,animData,mtx_3x4);
-  }
-  uVar2 = animModelDrawFlags;
-  lVar14 = (long)pVif->numChanges;
-  lVar11 = (long)*(int *)&pVif->field_0x28;
-  lVar13 = 0;
-  uVar10 = meshDrawMask & ~(1L << lVar14);
-  puVar15 = dmaTailHead[0];
-  puVar12 = dmaTailHead[0];
-  if (-1 < lVar14) {
-    do {
-      puVar12 = puVar15;
-      if ((((uint)uVar10 ^ 1) & 1) != 0) {
-        iVar5 = *(int *)(pVif->pad + (int)lVar13 * 4 + 0x15);
-        if (lVar11 != iVar5) {
-          puVar15[1] = 0;
-          puVar12 = puVar15 + 2;
-          *puVar15 = lVar11 << 0x20 | (long)(iVar5 - (int)lVar11 >> 4) | 0x30000000U;
-          dmaTailHead[0] = puVar12;
-          dmaTailHead[1] = puVar15;
-        }
-        lVar11 = (long)*(int *)(pVif->pad + (int)lVar13 * 4 + 0x15 + 4);
-      }
-      lVar13 = (long)((int)lVar13 + 1);
-      uVar10 = (long)uVar10 >> 1;
-      puVar15 = puVar12;
-    } while (lVar13 <= lVar14);
-  }
+    puVar12 = dmaTailHead[0];
+    if (-1 < lVar14) {
+        do {
+            puVar12 = puVar15;
+            if ((((uint)uVar10 ^ 1) & 1) != 0) {
+                iVar5 = *(int *)(pVif->pad + (int)lVar13 * 4 + 0x15);
+                if (lVar11 != iVar5) {
+                    puVar15[1] = 0;
+                    puVar12 = puVar15 + 2;
+                    *puVar15 = lVar11 << 0x20 | (long)(iVar5 - (int)lVar11 >> 4) | 0x30000000U;
+                    dmaTailHead[0] = puVar12;
+                    dmaTailHead[1] = puVar15;
+                }
+                lVar11 = (long)*(int *)(pVif->pad + (int)lVar13 * 4 + 0x15 + 4);
+            }
+            lVar13 = (long)((int)lVar13 + 1);
+            uVar10 = (long)uVar10 >> 1;
+            puVar15 = puVar12;
+        } while (lVar13 <= lVar14);
+    }
+*/
+
+/*
   puVar9 = (uint *)((int)puVar12 + 0xc);
   puVar15 = puVar12;
   if (uVar2 != 0) {
@@ -306,8 +309,12 @@ drawAnimatedModel(VifData *pVif, TextureHeader *pTex, int dmaSlot, Vec3 *pos, Ma
     puVar15 = dmaTailHead[0];
     dmaTailHead[1] = puVar12;
   }
-  puVar12 = curDMABufTail;
-  uVar10 = (long)*dmaTailHead[1] >> 0x1c & 7;
+*/
+
+
+  u64* puVar12 = curDMABufTail;
+/*
+  uVar10 = (long)*dmaPacketPtrs.dmaHead >> 0x1c & 7;
   if (uVar10 == 3) {
     uVar10 = 0;
   }
@@ -315,10 +322,12 @@ drawAnimatedModel(VifData *pVif, TextureHeader *pTex, int dmaSlot, Vec3 *pos, Ma
     uVar10 = 7;
   }
 
-  *dmaTailHead[1] = *dmaTailHead[1] & 0xffffffff8fffffff | uVar10 << 0x1c;
+  *dmaPacketPtrs.dmaHead = *dmaPacketPtrs.dmaHead & 0xffffffff8fffffff | uVar10 << 0x1c;
   curDMABufTail = puVar15;
+  */
+
   return queueDMA(puVar12, dmaSlot, pTex, headNode, false);
-*/
+
 }
 
 
