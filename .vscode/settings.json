@@ -8,5 +8,6 @@
                 "string": "cpp",
                 "string_view": "cpp",
                 "cstring": "cpp"
-        }
+        },
+        "makefile.configureOnOpen": false
 }

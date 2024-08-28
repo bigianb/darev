@@ -358,7 +358,7 @@ void AnimDebug::animFrame()
 
         // anim state at 0x4559e8
         //
-        drawAnimatedModel(vifData, &modelTex, 1, &camPos, &modelMatrix, nullptr /*&animStateData*/, meshMask, 0);
+        drawAnimatedModel(vifData, nullptr /* &modelTex */, 1, &camPos, &modelMatrix, nullptr /*&animStateData*/, meshMask, 0);
 /*
             FUN_ram_0013fa70();
             if (('\0' < *(char *)(iVar4 + 0x59ec)) &&
