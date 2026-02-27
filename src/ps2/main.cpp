@@ -11,7 +11,7 @@
 #include "display.h"
 #include "elfData.h"
 #include "filesys.h"
-#include "levelloop.h"
+#include "levelLoop.h"
 #include "lump.h"
 #include "pad.h"
 #include "scene.h"

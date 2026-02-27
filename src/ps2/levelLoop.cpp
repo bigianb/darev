@@ -134,20 +134,21 @@ LAB_ram_0020294c:
     */
     setLmpGeneration(10);
     /*
-        FUN_ram_00143780();
+        allocLevelTexArea(); //FUN_ram_00143780();
         FUN_ram_0016e648();
 
         displayEnvironment.dispfb &= 0xfffffe00;
         setDisplayRegs(&displayEnvironment);
         disableDisplay();
-        INT_ram_00325c38 = 2;
+        displayEnableCountdown = 2;
     */
     isInterlaced = 1;
     gameExited = 0;
 
     //resetVus();
-    //FLOAT_ram_00325c1c = 1.0;
+
     textBrightness[0] = 1.0f;
+    textBrightness[1] = 1.0f;
     while (gameExited == 0) {
         /*
         FUN_ram_00166948();
